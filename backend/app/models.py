@@ -24,7 +24,9 @@ class TestCase(BaseModel):
     steps: List[str]
     expected_result: str
 
-
+class GeneratedTestCases(BaseModel):
+    test_cases: List[TestCase]
+    
 class TestCaseResponse(BaseModel):
     requirement: str
     test_cases: List[TestCase]
