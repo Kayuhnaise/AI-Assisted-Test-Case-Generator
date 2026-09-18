@@ -1,0 +1,33 @@
+{
+  "id": "order_discount",
+  "requirement": "A discount shall be applied when the order total is $100 or greater.",
+  "source_code": "def apply_discount(order_total: float) -> float:\n    if order_total >= 100:\n        return order_total * 0.9\n    return order_total\n",
+  "reference_scenarios": [
+    {
+      "id": "pos_1",
+      "category": "positive",
+      "description": "An order total well above the threshold (e.g. $150) receives the discount."
+    },
+    {
+      "id": "bnd_1",
+      "category": "boundary",
+      "description": "An order total of exactly $100 receives the discount (the stated threshold, inclusive)."
+    },
+    {
+      "id": "bnd_2",
+      "category": "boundary",
+      "description": "An order total of $99.99, immediately below the threshold, does not receive the discount."
+    },
+    {
+      "id": "neg_1",
+      "category": "negative",
+      "description": "The order total is negative (e.g. -$50), which should not be a valid order. The requirement does not define this case; the current implementation silently returns the negative value unchanged instead of rejecting it."
+    },
+    {
+      "id": "edge_1",
+      "category": "edge",
+      "description": "The order total is exactly $0 (an empty order). No discount is applied; this is the lower edge of the normal domain, distinct from the invalid negative case."
+    }
+  ],
+  "notes": "Requirement wording ('$100 or greater') makes the boundary condition explicit and unambiguous, unlike account_lockout. neg_1 again targets the lack of input validation for a value outside the requirement's assumed domain."
+}

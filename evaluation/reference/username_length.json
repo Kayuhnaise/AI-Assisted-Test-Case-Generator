@@ -1,0 +1,38 @@
+{
+  "id": "username_length",
+  "requirement": "Usernames must be between 3 and 20 characters long, inclusive.",
+  "source_code": "def is_valid_username(username: str) -> bool:\n    return 3 <= len(username) <= 20\n",
+  "reference_scenarios": [
+    {
+      "id": "pos_1",
+      "category": "positive",
+      "description": "A username of typical length (e.g. 8 characters) is valid."
+    },
+    {
+      "id": "bnd_1",
+      "category": "boundary",
+      "description": "A username of exactly 3 characters is valid (the lower bound, inclusive)."
+    },
+    {
+      "id": "bnd_2",
+      "category": "boundary",
+      "description": "A username of exactly 20 characters is valid (the upper bound, inclusive)."
+    },
+    {
+      "id": "neg_1",
+      "category": "negative",
+      "description": "A username of 2 characters is invalid (one below the lower bound)."
+    },
+    {
+      "id": "neg_2",
+      "category": "negative",
+      "description": "A username of 21 characters is invalid (one above the upper bound)."
+    },
+    {
+      "id": "edge_1",
+      "category": "edge",
+      "description": "An empty username (0 characters) is invalid, well outside the valid range."
+    }
+  ],
+  "notes": "This requirement's boundaries are fully explicit ('between 3 and 20, inclusive'), so unlike the other three requirements there is no ambiguous or unvalidated input case worth flagging as a gap — every scenario here maps directly to stated behavior."
+}

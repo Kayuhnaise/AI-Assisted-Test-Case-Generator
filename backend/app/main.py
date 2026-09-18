@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
-from app.models import RequirementInput, TestCaseResponse
+from app.models import RequirementInput, ScenarioInput, ScenarioResponse, TestCaseResponse
 
-from app.generator import generate_test_cases
+from app.generator import generate_test_cases, identify_scenarios
 
 
 app = FastAPI(
@@ -37,4 +37,15 @@ def generate(request: RequirementInput):
     return TestCaseResponse(
         requirement=request.requirement,
         test_cases=test_cases
+    )
+
+
+@app.post("/scenarios", response_model=ScenarioResponse)
+def scenarios(request: ScenarioInput):
+
+    scenarios = identify_scenarios(request.requirement, request.source_code)
+
+    return ScenarioResponse(
+        requirement=request.requirement,
+        scenarios=scenarios
     )

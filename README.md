@@ -24,8 +24,10 @@ Completed so far:
 - Added structured LLM output using a Pydantic-generated JSON schema
 - Added Pydantic validation of LLM-generated test cases
 - Verified the complete requirement-to-AI-test-case pipeline through the FastAPI API
+- Added a separate scenario-identification step (`POST /scenarios`) that derives positive, negative, boundary, and edge scenarios from a requirement and its associated Python source code, before any test case is generated
+- Created an initial reference evaluation dataset (`evaluation/reference/`) of manually-derived, ground-truth scenarios for a small set of requirements, for comparison against AI-generated output
 
-The system can currently accept a natural-language software requirement and return AI-generated structured test cases.
+The system can currently accept a natural-language software requirement and return AI-generated structured test cases. It can also, independently, accept a requirement plus its associated Python source code and return the testing scenarios the model believes should be covered, before any test case text is written.
 
 ## Current Architecture
 
@@ -58,6 +60,8 @@ Natural-Language Requirement
    Structured Test Cases
 ```
 
+`POST /scenarios` runs a parallel, earlier-stage version of this same pipeline: requirement + source code go in, and a structured list of scenarios (not test cases) comes out. This exists to catch cases where a generated test is structurally valid JSON but semantically contradicts the requirement (see Known Limitations) — the goal is to have the model reason about expected behavior before it commits to test wording.
+
 ## Test Case Structure
 
 Each generated test case contains:
@@ -72,6 +76,20 @@ Each generated test case contains:
 - Preconditions
 - Test steps
 - Expected result
+
+## Scenario Structure
+
+Each identified scenario (from `POST /scenarios`) contains:
+
+- Scenario ID
+- Category
+  - Positive
+  - Negative
+  - Boundary
+  - Edge
+- Description of the expected behavior or boundary condition being covered
+
+A scenario describes a behavior, not a test: it does not contain test steps or expected-result wording.
 
 ## Example Requirement
 
@@ -97,10 +115,17 @@ AI-Assisted-Test-Case-Generator/
 |
 ├── frontend/
 ├── evaluation/
+|   └── reference/
+|       ├── account_lockout.json
+|       ├── order_discount.json
+|       ├── username_length.json
+|       └── safe_division.json
 ├── docs/
 ├── .gitignore
 └── README.md
 ```
+
+Each file under `evaluation/reference/` contains a `requirement`, its associated `source_code`, a list of `reference_scenarios` (manually agreed ground truth, in the same `id`/`category`/`description` shape returned by `POST /scenarios`), and free-text `notes` explaining the reasoning behind non-obvious scenarios.
 
 ## Running the Backend
 
@@ -178,6 +203,10 @@ Checks whether the backend is running.
 
 Accepts a natural-language software requirement and uses Qwen3:4b to generate structured software test cases.
 
+### POST `/scenarios`
+
+Accepts a natural-language software requirement and its associated Python source code, and uses Qwen3:4b to identify the distinct positive, negative, boundary, and edge testing scenarios implied by both, before any test case is written.
+
 ## Validation
 
 Input requirements are validated using Pydantic before being sent to the LLM.
@@ -190,18 +219,19 @@ This ensures structural validity but does not guarantee that every AI-generated 
 
 The current system does not yet guarantee the semantic correctness of AI-generated test cases.
 
-An LLM can produce a test case that conforms to the required JSON structure but contains an expected result that contradicts the original requirement. Additional scenario identification and validation will be implemented to improve requirement traceability and semantic correctness.
+An LLM can produce a test case that conforms to the required JSON structure but contains an expected result that contradicts the original requirement. The `/scenarios` endpoint is a first step toward addressing this by having the model reason about expected behavior before generating test wording, but `/generate` and `/scenarios` are still two separate, unconnected calls — `/generate` does not yet consume the output of `/scenarios`, so a generated test case is not guaranteed to be traceable to an identified scenario.
+
+The reference evaluation dataset currently contains 4 requirements, short of the proposal's target of 15-20. There is not yet an automated comparison between AI-generated scenarios and the reference scenarios; evaluation metrics (scenario coverage, scenario-type coverage, test execution rate, requirement alignment) are defined in the project proposal but not yet implemented.
 
 ## Next Steps
 
-- Implement explicit requirement scenario identification
-- Improve semantic correctness and requirement traceability
-- Generate executable pytest test code
-- Add automated pytest execution
+- Wire the Test Generator stage so it consumes `/scenarios` output (rather than the requirement alone) to generate executable pytest tests, per the project proposal
+- Add automated pytest execution and result capture
+- Implement automated comparison of AI-generated scenarios against `evaluation/reference/` ground truth (scenario coverage, scenario-type coverage)
+- Expand the reference evaluation dataset toward the proposal's target of 15-20 requirements
+- Evaluate generated tests for correctness, coverage, diversity, and hallucinations
 - Develop the frontend
 - Add human review and editing
-- Create the reference evaluation dataset
-- Evaluate generated tests for correctness, coverage, diversity, and hallucinations
 
 ## Evaluation Goal
 

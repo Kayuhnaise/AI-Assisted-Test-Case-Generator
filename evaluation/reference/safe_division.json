@@ -1,0 +1,33 @@
+{
+  "id": "safe_division",
+  "requirement": "The system shall compute the result of dividing two numbers and shall reject division by zero.",
+  "source_code": "def divide(numerator: float, denominator: float) -> float:\n    if denominator == 0:\n        raise ValueError(\"Cannot divide by zero\")\n    return numerator / denominator\n",
+  "reference_scenarios": [
+    {
+      "id": "pos_1",
+      "category": "positive",
+      "description": "Dividing two ordinary nonzero numbers (e.g. 10 by 2) returns the correct quotient."
+    },
+    {
+      "id": "neg_1",
+      "category": "negative",
+      "description": "Dividing by zero is rejected: the system raises an error instead of returning a result, per the explicit requirement."
+    },
+    {
+      "id": "bnd_1",
+      "category": "boundary",
+      "description": "Dividing by a very small nonzero denominator (e.g. 0.0001) succeeds and returns a large but valid result, distinguishing 'near zero' from 'exactly zero'."
+    },
+    {
+      "id": "edge_1",
+      "category": "edge",
+      "description": "A numerator of zero divided by a nonzero denominator returns 0, which is valid and distinct from the division-by-zero error case."
+    },
+    {
+      "id": "edge_2",
+      "category": "edge",
+      "description": "Both numerator and denominator are negative (e.g. -10 / -2), returning a correct positive result."
+    }
+  ],
+  "notes": "This is the one reference requirement whose negative/error-path behavior is explicitly stated ('shall reject division by zero'), so neg_1 tests requirement-mandated error handling rather than an unvalidated gap like in the other files."
+}

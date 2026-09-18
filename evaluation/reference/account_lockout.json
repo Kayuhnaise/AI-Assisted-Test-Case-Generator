@@ -1,0 +1,33 @@
+{
+  "id": "account_lockout",
+  "requirement": "The system shall lock an account after five consecutive failed login attempts.",
+  "source_code": "def check_login(attempts: int) -> str:\n    if attempts >= 5:\n        return \"locked\"\n    return \"allowed\"\n",
+  "reference_scenarios": [
+    {
+      "id": "pos_1",
+      "category": "positive",
+      "description": "A user with 2 consecutive failed attempts is still allowed to log in."
+    },
+    {
+      "id": "bnd_1",
+      "category": "boundary",
+      "description": "A user with exactly 4 consecutive failed attempts is still allowed to log in (immediately below the limit)."
+    },
+    {
+      "id": "bnd_2",
+      "category": "boundary",
+      "description": "A user with exactly 5 consecutive failed attempts is locked out (the stated threshold)."
+    },
+    {
+      "id": "neg_1",
+      "category": "negative",
+      "description": "The attempt count is negative (e.g. -1), which cannot occur under normal use. The requirement does not define expected behavior for this case; it should either be rejected/validated or explicitly documented as always-allowed, rather than silently passing through as it does today."
+    },
+    {
+      "id": "edge_1",
+      "category": "edge",
+      "description": "The attempt count is a non-integer value (e.g. a string), which the current implementation does not guard against. The requirement implies a countable integer; invalid types should be rejected rather than causing an unhandled error."
+    }
+  ],
+  "notes": "Source function has no input validation. neg_1 and edge_1 exist to surface that gap; they are reference-only cases the AI-generated scenarios should ideally also flag, since the requirement is silent on invalid input."
+}
