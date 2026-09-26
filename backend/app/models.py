@@ -1,6 +1,7 @@
+import ast
 from typing import List, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class RequirementInput(BaseModel):
@@ -23,6 +24,15 @@ class ScenarioInput(BaseModel):
         description="Python source code associated with the requirement"
     )
 
+    @field_validator("source_code")
+    @classmethod
+    def source_must_be_valid_python(cls, source_code: str) -> str:
+        try:
+            ast.parse(source_code)
+        except SyntaxError as exc:
+            raise ValueError("source_code must be valid Python") from exc
+        return source_code
+
 
 class Scenario(BaseModel):
     id: str
@@ -42,7 +52,7 @@ class Scenario(BaseModel):
 
 
 class GeneratedScenarios(BaseModel):
-    scenarios: List[Scenario]
+    scenarios: List[Scenario] = Field(min_length=1)
 
 
 class ScenarioResponse(BaseModel):
@@ -52,6 +62,7 @@ class ScenarioResponse(BaseModel):
 
 class TestCase(BaseModel):
     id: str
+    scenario_id: str
     title: str
     test_type: Literal[
         "positive",
@@ -62,10 +73,16 @@ class TestCase(BaseModel):
     preconditions: List[str]
     steps: List[str]
     expected_result: str
+    pytest_code: str = Field(
+        ...,
+        description="A single executable pytest test function for this scenario"
+    )
 
 class GeneratedTestCases(BaseModel):
     test_cases: List[TestCase]
     
 class TestCaseResponse(BaseModel):
     requirement: str
+    scenarios: List[Scenario]
     test_cases: List[TestCase]
+    pytest_code: str

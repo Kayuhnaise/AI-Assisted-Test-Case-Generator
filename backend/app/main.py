@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.models import RequirementInput, ScenarioInput, ScenarioResponse, TestCaseResponse
+from app.models import ScenarioInput, ScenarioResponse, TestCaseResponse
 
 from app.generator import generate_test_cases, identify_scenarios
 
@@ -30,13 +30,19 @@ def health_check():
 
 
 @app.post("/generate", response_model=TestCaseResponse)
-def generate(request: RequirementInput):
-
-    test_cases = generate_test_cases(request.requirement)
+def generate(request: ScenarioInput):
+    scenarios = identify_scenarios(request.requirement, request.source_code)
+    test_cases, pytest_code = generate_test_cases(
+        request.requirement,
+        request.source_code,
+        scenarios,
+    )
 
     return TestCaseResponse(
         requirement=request.requirement,
-        test_cases=test_cases
+        scenarios=scenarios,
+        test_cases=test_cases,
+        pytest_code=pytest_code,
     )
 
 

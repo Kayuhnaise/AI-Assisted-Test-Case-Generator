@@ -1,42 +1,59 @@
+from collections.abc import Sequence
+
+from app.models import Scenario
+
+
 SYSTEM_PROMPT = """
 You are a software testing assistant.
 
-Your task is to generate software test cases from a natural-language
-software requirement.
+Your task is to generate software test cases and executable pytest test
+functions from a requirement, its Python source code, and an already
+identified list of testing scenarios.
 
-Generate test cases that are directly traceable to the requirement.
+Generate exactly one test case for every supplied scenario. Preserve each
+scenario's id as scenario_id and its category as test_type. Do not add,
+remove, merge, or reinterpret scenarios. The supplied scenarios are the
+source of expected behavior; the requirement and source code provide
+additional context for writing tests that match the implementation.
 
-Consider the following test categories when applicable:
-- positive
-- negative
-- boundary
-- edge
+Each test case must also contain a pytest_code string with exactly one
+complete top-level Python function whose name starts with test_. The
+function must execute/assert the supplied scenario against the functions
+defined in the supplied source code. It must be compatible with that source
+when appended to it in the same Python file. Use concrete input values and
+assertions derived from the scenario, requirement, and source code.
 
-Do not invent functionality that is not stated or reasonably implied
-by the requirement.
-
-Each test case must contain:
-- id
-- title
-- test_type
-- preconditions
-- steps
-- expected_result
+Keep test functions self-contained. Do not use file, network, subprocess,
+eval, or exec operations. Do not alter the source code or weaken assertions.
 
 Return structured data only.
 """
 
 
-def build_generation_prompt(requirement: str) -> str:
+def build_generation_prompt(
+    requirement: str,
+    source_code: str,
+    scenarios: Sequence[Scenario],
+) -> str:
+    scenario_data = "\n".join(
+        scenario.model_dump_json() for scenario in scenarios
+    )
     return f"""
 Software requirement:
 
 {requirement}
 
-Generate a set of test cases that adequately tests this requirement.
+Python source code under test:
 
-Include positive, negative, boundary, and edge cases when they are
-applicable to the requirement.
+{source_code}
+
+Scenarios identified in the previous pipeline step (cover these exactly):
+
+{scenario_data}
+
+Generate one structured test case and one executable pytest function for
+each scenario. Every test function must assert behavior matching that
+scenario; test functions will be appended after the source code above.
 """
 
 

@@ -32,7 +32,7 @@ The system can currently accept a natural-language software requirement and retu
 ## Current Architecture
 
 ```text
-Natural-Language Requirement
+Requirement + Python Source Code
             |
             v
       FastAPI Backend
@@ -42,7 +42,11 @@ Natural-Language Requirement
         (Pydantic)
             |
             v
-    Prompt Construction
+ Scenario Identification
+      |
+      v
+ Scenario-Grounded Test
+   and pytest Generation
             |
             v
          Ollama
@@ -57,10 +61,11 @@ Natural-Language Requirement
     Pydantic Validation
             |
             v
-   Structured Test Cases
+ Scenarios + Test Cases
+    + pytest Module
 ```
 
-`POST /scenarios` runs a parallel, earlier-stage version of this same pipeline: requirement + source code go in, and a structured list of scenarios (not test cases) comes out. This exists to catch cases where a generated test is structurally valid JSON but semantically contradicts the requirement (see Known Limitations) — the goal is to have the model reason about expected behavior before it commits to test wording.
+`POST /scenarios` exposes the scenario-identification stage by itself. `POST /generate` now runs that same stage first, passes its scenario output to the test-generation stage, and returns the scenarios, structured test cases, and a complete pytest module containing the supplied source code and generated test functions.
 
 ## Test Case Structure
 
@@ -76,6 +81,8 @@ Each generated test case contains:
 - Preconditions
 - Test steps
 - Expected result
+- The scenario ID it covers
+- One executable pytest test function
 
 ## Scenario Structure
 
@@ -201,7 +208,7 @@ Checks whether the backend is running.
 
 ### POST `/generate`
 
-Accepts a natural-language software requirement and uses Qwen3:4b to generate structured software test cases.
+Accepts a natural-language software requirement and its associated Python source code. It identifies scenarios first, then generates one scenario-linked test case and pytest function per scenario. The response includes `scenarios`, `test_cases`, and `pytest_code`. The `pytest_code` field is a self-contained module: save it as a Python test file (for example, `test_generated.py`) and run it with pytest.
 
 ### POST `/scenarios`
 
@@ -209,24 +216,23 @@ Accepts a natural-language software requirement and its associated Python source
 
 ## Validation
 
-Input requirements are validated using Pydantic before being sent to the LLM.
+Both endpoints accept `requirement` and `source_code`; requirements and source code are validated before being sent to the LLM. `/generate` rejects invalid Python source.
 
 LLM output is constrained using a JSON schema generated from the Pydantic models. The returned JSON is then validated again using Pydantic before the test cases are returned by the API.
 
-This ensures structural validity but does not guarantee that every AI-generated test case is semantically correct.
+The generated scenario IDs and categories are checked against the test cases, each case must contain valid Python with one pytest test function, and the combined pytest module must parse. These checks do not guarantee that every AI-generated assertion is semantically correct; review generated tests before relying on them.
 
 ## Known Limitations
 
-The current system does not yet guarantee the semantic correctness of AI-generated test cases.
+The current system does not guarantee the semantic correctness of AI-generated test cases.
 
-An LLM can produce a test case that conforms to the required JSON structure but contains an expected result that contradicts the original requirement. The `/scenarios` endpoint is a first step toward addressing this by having the model reason about expected behavior before generating test wording, but `/generate` and `/scenarios` are still two separate, unconnected calls — `/generate` does not yet consume the output of `/scenarios`, so a generated test case is not guaranteed to be traceable to an identified scenario.
+An LLM can produce a test case or assertion that contradicts the source or requirement despite being structurally valid. `/generate` now consumes the scenarios identified earlier in its own pipeline and validates scenario-to-test coverage, but semantic correctness still requires review. The generated pytest module includes the submitted source code, so it is a runnable artifact for validating that submitted implementation; it is not yet wired to an external application module or CI execution pipeline.
 
 The reference evaluation dataset currently contains 4 requirements, short of the proposal's target of 15-20. There is not yet an automated comparison between AI-generated scenarios and the reference scenarios; evaluation metrics (scenario coverage, scenario-type coverage, test execution rate, requirement alignment) are defined in the project proposal but not yet implemented.
 
 ## Next Steps
 
-- Wire the Test Generator stage so it consumes `/scenarios` output (rather than the requirement alone) to generate executable pytest tests, per the project proposal
-- Add automated pytest execution and result capture
+- Add automated pytest execution and result capture to the API/evaluation workflow
 - Implement automated comparison of AI-generated scenarios against `evaluation/reference/` ground truth (scenario coverage, scenario-type coverage)
 - Expand the reference evaluation dataset toward the proposal's target of 15-20 requirements
 - Evaluate generated tests for correctness, coverage, diversity, and hallucinations
