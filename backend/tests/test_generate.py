@@ -1,5 +1,4 @@
 import subprocess
-import sys
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -13,6 +12,7 @@ from app.models import (
     Scenario,
     TestCase as GeneratedCase,
 )
+from app.test_runner import run_pytest
 
 
 client = TestClient(app)
@@ -22,7 +22,7 @@ def _ollama_response(content: str) -> SimpleNamespace:
     return SimpleNamespace(message=SimpleNamespace(content=content))
 
 
-def test_generate_identifies_scenarios_then_returns_runnable_pytest(tmp_path):
+def test_generate_identifies_scenarios_then_executes_runnable_pytest():
     source_code = (
         "def check_login(attempts: int) -> str:\n"
         "    if attempts >= 5:\n"
@@ -73,20 +73,65 @@ def test_generate_identifies_scenarios_then_returns_runnable_pytest(tmp_path):
     assert [item["id"] for item in result["scenarios"]] == ["bnd_1"]
     assert result["test_cases"][0]["scenario_id"] == "bnd_1"
     assert "check_login(5) == 'locked'" in result["pytest_code"]
+    assert result["pytest_result"]["status"] == "passed"
+    assert result["pytest_result"]["tests_run"] == 1
+    assert result["pytest_result"]["passed"] == 1
     assert chat.call_count == 2
     generation_prompt = chat.call_args_list[1].kwargs["messages"][1]["content"]
     assert "Exactly five failed attempts locks the account." in generation_prompt
 
-    test_file = tmp_path / "test_generated.py"
-    test_file.write_text(result["pytest_code"], encoding="utf-8")
-    run = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", str(test_file)],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=False,
+
+def test_generate_returns_failed_pytest_result_for_failing_assertion():
+    scenario = Scenario(
+        id="pos_1",
+        category="positive",
+        description="The example returns true.",
     )
-    assert run.returncode == 0, run.stdout + run.stderr
+    test_case = GeneratedCase(
+        id="tc_1",
+        scenario_id="pos_1",
+        title="Failing test",
+        test_type="positive",
+        preconditions=[],
+        steps=[],
+        expected_result="True",
+        pytest_code="def test_failure():\n    assert example() is False\n",
+    )
+    responses = [
+        _ollama_response(
+            GeneratedScenarios(scenarios=[scenario]).model_dump_json()
+        ),
+        _ollama_response(
+            GeneratedTestCases(test_cases=[test_case]).model_dump_json()
+        ),
+    ]
+
+    with patch("app.generator.ollama.chat", side_effect=responses):
+        response = client.post(
+            "/generate",
+            json={
+                "requirement": "An example function returns true.",
+                "source_code": "def example():\n    return True\n",
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json()["pytest_result"]
+    assert result["status"] == "failed"
+    assert result["tests_run"] == 1
+    assert result["failed"] == 1
+
+
+def test_pytest_runner_reports_timeout():
+    with patch(
+        "app.test_runner.subprocess.run",
+        side_effect=subprocess.TimeoutExpired("pytest", 15, output="still running"),
+    ):
+        result = run_pytest("def test_example():\n    assert True\n")
+
+    assert result.status == "timeout"
+    assert result.exit_code is None
+    assert result.stdout == "still running"
 
 
 def test_generate_rejects_test_cases_that_do_not_cover_all_scenarios():

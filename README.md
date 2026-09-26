@@ -24,10 +24,11 @@ Completed so far:
 - Added structured LLM output using a Pydantic-generated JSON schema
 - Added Pydantic validation of LLM-generated test cases
 - Verified the complete requirement-to-AI-test-case pipeline through the FastAPI API
+- Added automatic pytest execution for generated tests and structured result capture in `/generate`
 - Added a separate scenario-identification step (`POST /scenarios`) that derives positive, negative, boundary, and edge scenarios from a requirement and its associated Python source code, before any test case is generated
 - Created an initial reference evaluation dataset (`evaluation/reference/`) of manually-derived, ground-truth scenarios for a small set of requirements, for comparison against AI-generated output
 
-The system can currently accept a natural-language software requirement and return AI-generated structured test cases. It can also, independently, accept a requirement plus its associated Python source code and return the testing scenarios the model believes should be covered, before any test case text is written.
+The system accepts a natural-language requirement and its associated Python source code, identifies scenarios, generates scenario-linked pytest tests, runs those tests, and returns both the tests and their execution results. The `/scenarios` endpoint remains available to run scenario identification by itself.
 
 ## Current Architecture
 
@@ -63,9 +64,15 @@ Requirement + Python Source Code
             v
  Scenarios + Test Cases
     + pytest Module
+      |
+      v
+    Bounded pytest Run
+      |
+      v
+    Execution Results
 ```
 
-`POST /scenarios` exposes the scenario-identification stage by itself. `POST /generate` now runs that same stage first, passes its scenario output to the test-generation stage, and returns the scenarios, structured test cases, and a complete pytest module containing the supplied source code and generated test functions.
+`POST /scenarios` exposes the scenario-identification stage by itself. `POST /generate` runs that stage first, passes its scenario output to test generation, executes the resulting pytest module in a temporary directory with a 15-second timeout, and returns scenarios, structured test cases, the pytest module, and execution results.
 
 ## Test Case Structure
 
@@ -208,7 +215,7 @@ Checks whether the backend is running.
 
 ### POST `/generate`
 
-Accepts a natural-language software requirement and its associated Python source code. It identifies scenarios first, then generates one scenario-linked test case and pytest function per scenario. The response includes `scenarios`, `test_cases`, and `pytest_code`. The `pytest_code` field is a self-contained module: save it as a Python test file (for example, `test_generated.py`) and run it with pytest.
+Accepts a natural-language software requirement and its associated Python source code. It identifies scenarios first, then generates one scenario-linked test case and pytest function per scenario. The response includes `scenarios`, `test_cases`, `pytest_code`, and `pytest_result`. The API automatically runs the generated module with pytest in a temporary directory (15-second timeout) and returns the execution status, exit code, test counts, stdout, and stderr. The `pytest_code` field is also returned so it can be saved and rerun manually.
 
 ### POST `/scenarios`
 
@@ -220,19 +227,18 @@ Both endpoints accept `requirement` and `source_code`; requirements and source c
 
 LLM output is constrained using a JSON schema generated from the Pydantic models. The returned JSON is then validated again using Pydantic before the test cases are returned by the API.
 
-The generated scenario IDs and categories are checked against the test cases, each case must contain valid Python with one pytest test function, and the combined pytest module must parse. These checks do not guarantee that every AI-generated assertion is semantically correct; review generated tests before relying on them.
+The generated scenario IDs and categories are checked against the test cases, each case must contain valid Python with one pytest test function, and the combined pytest module must parse. Pytest execution is bounded by a timeout, and its result is included in the response. These checks do not guarantee that every AI-generated assertion is semantically correct; review generated tests before relying on them.
 
 ## Known Limitations
 
 The current system does not guarantee the semantic correctness of AI-generated test cases.
 
-An LLM can produce a test case or assertion that contradicts the source or requirement despite being structurally valid. `/generate` now consumes the scenarios identified earlier in its own pipeline and validates scenario-to-test coverage, but semantic correctness still requires review. The generated pytest module includes the submitted source code, so it is a runnable artifact for validating that submitted implementation; it is not yet wired to an external application module or CI execution pipeline.
+An LLM can produce a test case or assertion that contradicts the source or requirement despite being structurally valid. `/generate` consumes the identified scenarios, validates scenario-to-test coverage, and executes the resulting module with pytest, but semantic correctness still requires review. Test execution runs submitted Python source and generated code. It is intended for trusted local development only and is **not sandboxed**; do not expose this endpoint to untrusted users or the public internet. The generated module tests the submitted source included in that module; it is not yet wired to an external application module or CI execution pipeline.
 
 The reference evaluation dataset currently contains 4 requirements, short of the proposal's target of 15-20. There is not yet an automated comparison between AI-generated scenarios and the reference scenarios; evaluation metrics (scenario coverage, scenario-type coverage, test execution rate, requirement alignment) are defined in the project proposal but not yet implemented.
 
 ## Next Steps
 
-- Add automated pytest execution and result capture to the API/evaluation workflow
 - Implement automated comparison of AI-generated scenarios against `evaluation/reference/` ground truth (scenario coverage, scenario-type coverage)
 - Expand the reference evaluation dataset toward the proposal's target of 15-20 requirements
 - Evaluate generated tests for correctness, coverage, diversity, and hallucinations

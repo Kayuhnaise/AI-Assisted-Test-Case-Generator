@@ -78,6 +78,19 @@ class TestCase(BaseModel):
         description="A single executable pytest test function for this scenario"
     )
 
+
+class PytestExecutionResult(BaseModel):
+    status: Literal["passed", "failed", "error", "timeout"]
+    exit_code: int | None
+    tests_run: int
+    passed: int
+    failed: int
+    errors: int
+    skipped: int
+    stdout: str
+    stderr: str
+
+
 class GeneratedTestCases(BaseModel):
     test_cases: List[TestCase]
     
@@ -86,3 +99,4 @@ class TestCaseResponse(BaseModel):
     scenarios: List[Scenario]
     test_cases: List[TestCase]
     pytest_code: str
+    pytest_result: PytestExecutionResult
