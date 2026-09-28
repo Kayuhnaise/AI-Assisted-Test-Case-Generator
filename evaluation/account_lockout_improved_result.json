@@ -1,0 +1,95 @@
+{
+    "requirement":  "The system shall lock an account after five consecutive failed login attempts.",
+    "scenarios":  [
+                      {
+                          "id":  "boundary_4",
+                          "category":  "boundary",
+                          "description":  "4 consecutive failed attempts â?? system returns \u0027allowed\u0027"
+                      },
+                      {
+                          "id":  "boundary_5",
+                          "category":  "boundary",
+                          "description":  "5 consecutive failed attempts â?? system returns \u0027locked\u0027"
+                      },
+                      {
+                          "id":  "boundary_6",
+                          "category":  "boundary",
+                          "description":  "6 consecutive failed attempts â?? system returns \u0027locked\u0027"
+                      },
+                      {
+                          "id":  "negative",
+                          "category":  "negative",
+                          "description":  "Negative consecutive failed attempts â?? system returns \u0027allowed\u0027 (but should be invalid)"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "boundary_4",
+                           "scenario_id":  "boundary_4",
+                           "title":  "4 consecutive failed attempts â?? system returns \u0027allowed\u0027",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(4)"
+                                     ],
+                           "expected_result":  "allowed",
+                           "pytest_code":  "def test_boundary_4():\n    assert check_login(4) == \u0027allowed\u0027"
+                       },
+                       {
+                           "id":  "boundary_5",
+                           "scenario_id":  "boundary_5",
+                           "title":  "5 consecutive failed attempts â?? system returns \u0027locked\u0027",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(5)"
+                                     ],
+                           "expected_result":  "locked",
+                           "pytest_code":  "def test_boundary_5():\n    assert check_login(5) == \u0027locked\u0027"
+                       },
+                       {
+                           "id":  "boundary_6",
+                           "scenario_id":  "boundary_6",
+                           "title":  "6 consecutive failed attempts â?? system returns \u0027locked\u0027",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(6)"
+                                     ],
+                           "expected_result":  "locked",
+                           "pytest_code":  "def test_boundary_6():\n    assert check_login(6) == \u0027locked\u0027"
+                       },
+                       {
+                           "id":  "negative",
+                           "scenario_id":  "negative",
+                           "title":  "Negative consecutive failed attempts â?? system returns \u0027allowed\u0027 (but should be invalid)",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(-1)"
+                                     ],
+                           "expected_result":  "allowed",
+                           "pytest_code":  "def test_negative():\n    assert check_login(-1) == \u0027allowed\u0027"
+                       }
+                   ],
+    "pytest_code":  "def check_login(attempts: int) -\u003e str:\n    if attempts \u003e= 5:\n        return \"locked\"\n    return \"allowed\"\n\ndef test_boundary_4():\n    assert check_login(4) == \u0027allowed\u0027\n\ndef test_boundary_5():\n    assert check_login(5) == \u0027locked\u0027\n\ndef test_boundary_6():\n    assert check_login(6) == \u0027locked\u0027\n\ndef test_negative():\n    assert check_login(-1) == \u0027allowed\u0027\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  4,
+                          "passed":  4,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "....                                                                     [100%]\n4 passed in 0.12s\n",
+                          "stderr":  ""
+                      }
+}

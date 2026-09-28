@@ -70,8 +70,10 @@ def generate_test_cases(
         scenario = scenario_by_id[test_case.scenario_id]
         if test_case.test_type != scenario.category:
             raise ValueError(
-                f"Test case {test_case.id} category does not match "
-                f"scenario {scenario.id}"
+                f"Test case {test_case.id} category "
+		f"'{test_case.test_type}' does not match "
+                f"scenario {scenario.id} category "
+		f"'{scenario.category}'"
             )
 
         try:

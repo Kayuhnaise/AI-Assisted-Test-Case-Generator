@@ -1,0 +1,57 @@
+{
+    "requirement":  "The system shall compute the result of dividing two numbers and shall reject division by zero.",
+    "scenarios":  [
+                      {
+                          "id":  "positive",
+                          "category":  "positive",
+                          "description":  "Division with a non-zero denominator"
+                      },
+                      {
+                          "id":  "negative",
+                          "category":  "negative",
+                          "description":  "Division by zero (denominator equals zero)"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "1",
+                           "scenario_id":  "positive",
+                           "title":  "Division with a non-zero denominator",
+                           "test_type":  "positive",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call divide(4.0, 2.0)"
+                                     ],
+                           "expected_result":  "2.0",
+                           "pytest_code":  "def test_positive():\n    assert divide(4.0, 2.0) == 2.0"
+                       },
+                       {
+                           "id":  "2",
+                           "scenario_id":  "negative",
+                           "title":  "Division by zero (denominator equals zero)",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call divide(5.0, 0.0)"
+                                     ],
+                           "expected_result":  "ValueError with message \u0027Cannot divide by zero\u0027",
+                           "pytest_code":  "def test_negative():\n    with pytest.raises(ValueError) as excinfo:\n        divide(5.0, 0.0)\n    assert str(excinfo.value) == \"Cannot divide by zero\""
+                       }
+                   ],
+    "pytest_code":  "def divide(numerator: float, denominator: float) -\u003e float:\n    if denominator == 0:\n        raise ValueError(\"Cannot divide by zero\")\n    return numerator / denominator\n\ndef test_positive():\n    assert divide(4.0, 2.0) == 2.0\n\ndef test_negative():\n    with pytest.raises(ValueError) as excinfo:\n        divide(5.0, 0.0)\n    assert str(excinfo.value) == \"Cannot divide by zero\"\n",
+    "pytest_result":  {
+                          "status":  "failed",
+                          "exit_code":  1,
+                          "tests_run":  2,
+                          "passed":  1,
+                          "failed":  1,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  ".F                                                                       [100%]\n================================== FAILURES ===================================\n________________________________ test_negative ________________________________\ntest_generated.py:10: in test_negative\n    with pytest.raises(ValueError) as excinfo:\n         ^^^^^^\nE   NameError: name \u0027pytest\u0027 is not defined\n=========================== short test summary info ===========================\nFAILED test_generated.py::test_negative - NameError: name \u0027pytest\u0027 is not def...\n1 failed, 1 passed in 0.37s\n",
+                          "stderr":  ""
+                      }
+}

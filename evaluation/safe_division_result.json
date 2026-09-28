@@ -1,0 +1,57 @@
+{
+    "requirement":  "The system shall compute the result of dividing two numbers and shall reject division by zero.",
+    "scenarios":  [
+                      {
+                          "id":  "pos_1",
+                          "category":  "positive",
+                          "description":  "division with non-zero denominator"
+                      },
+                      {
+                          "id":  "neg_1",
+                          "category":  "negative",
+                          "description":  "division by zero"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "pos_1",
+                           "scenario_id":  "pos_1",
+                           "title":  "division with non-zero denominator",
+                           "test_type":  "positive",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+
+                                     ],
+                           "expected_result":  "2.0",
+                           "pytest_code":  "import pytest\n\ndef test_pos_1():\n    assert divide(4.0, 2.0) == 2.0"
+                       },
+                       {
+                           "id":  "neg_1",
+                           "scenario_id":  "neg_1",
+                           "title":  "division by zero",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+
+                                     ],
+                           "expected_result":  "Cannot divide by zero",
+                           "pytest_code":  "import pytest\n\ndef test_neg_1():\n    with pytest.raises(ValueError) as excinfo:\n        divide(1.0, 0.0)\n    assert str(excinfo.value) == \u0027Cannot divide by zero\u0027"
+                       }
+                   ],
+    "pytest_code":  "def divide(numerator: float, denominator: float) -\u003e float:\n    if denominator == 0:\n        raise ValueError(\"Cannot divide by zero\")\n    return numerator / denominator\n\nimport pytest\n\ndef test_pos_1():\n    assert divide(4.0, 2.0) == 2.0\n\nimport pytest\n\ndef test_neg_1():\n    with pytest.raises(ValueError) as excinfo:\n        divide(1.0, 0.0)\n    assert str(excinfo.value) == \u0027Cannot divide by zero\u0027\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  2,
+                          "passed":  2,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "..                                                                       [100%]\n2 passed in 0.28s\n",
+                          "stderr":  ""
+                      }
+}

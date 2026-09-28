@@ -1,0 +1,95 @@
+{
+    "requirement":  "Usernames must be between 3 and 20 characters long, inclusive.",
+    "scenarios":  [
+                      {
+                          "id":  "boundary_3",
+                          "category":  "boundary",
+                          "description":  "Username length is 3 (minimum valid length)"
+                      },
+                      {
+                          "id":  "boundary_20",
+                          "category":  "boundary",
+                          "description":  "Username length is 20 (maximum valid length)"
+                      },
+                      {
+                          "id":  "negative_2",
+                          "category":  "negative",
+                          "description":  "Username length is 2 (below minimum valid length)"
+                      },
+                      {
+                          "id":  "negative_21",
+                          "category":  "negative",
+                          "description":  "Username length is 21 (above maximum valid length)"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "boundary_3",
+                           "scenario_id":  "boundary_3",
+                           "title":  "boundary",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+
+                                     ],
+                           "expected_result":  "True",
+                           "pytest_code":  "def test_boundary_3():\n    assert is_valid_username(\u0027abc\u0027)"
+                       },
+                       {
+                           "id":  "boundary_20",
+                           "scenario_id":  "boundary_20",
+                           "title":  "boundary",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+
+                                     ],
+                           "expected_result":  "True",
+                           "pytest_code":  "def test_boundary_20():\n    assert is_valid_username(\u0027a\u0027 * 20)"
+                       },
+                       {
+                           "id":  "negative_2",
+                           "scenario_id":  "negative_2",
+                           "title":  "negative",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+
+                                     ],
+                           "expected_result":  "False",
+                           "pytest_code":  "def test_negative_2():\n    assert not is_valid_username(\u0027ab\u0027)"
+                       },
+                       {
+                           "id":  "negative_21",
+                           "scenario_id":  "negative_21",
+                           "title":  "negative",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+
+                                     ],
+                           "expected_result":  "False",
+                           "pytest_code":  "def test_negative_21():\n    assert not is_valid_username(\u0027a\u0027 * 21)"
+                       }
+                   ],
+    "pytest_code":  "def is_valid_username(username: str) -\u003e bool:\n    return 3 \u003c= len(username) \u003c= 20\n\ndef test_boundary_3():\n    assert is_valid_username(\u0027abc\u0027)\n\ndef test_boundary_20():\n    assert is_valid_username(\u0027a\u0027 * 20)\n\ndef test_negative_2():\n    assert not is_valid_username(\u0027ab\u0027)\n\ndef test_negative_21():\n    assert not is_valid_username(\u0027a\u0027 * 21)\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  4,
+                          "passed":  4,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "....                                                                     [100%]\n4 passed in 0.32s\n",
+                          "stderr":  ""
+                      }
+}

@@ -1,0 +1,76 @@
+{
+    "requirement":  "The system shall lock an account after five consecutive failed login attempts.",
+    "scenarios":  [
+                      {
+                          "id":  "1",
+                          "category":  "positive",
+                          "description":  "Account is allowed when fewer than five consecutive failed login attempts have occurred"
+                      },
+                      {
+                          "id":  "2",
+                          "category":  "boundary",
+                          "description":  "Account is allowed when exactly four consecutive failed login attempts have occurred"
+                      },
+                      {
+                          "id":  "3",
+                          "category":  "boundary",
+                          "description":  "Account is locked when exactly six consecutive failed login attempts have occurred"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "1",
+                           "scenario_id":  "1",
+                           "title":  "Positive: Account is allowed when fewer than five consecutive failed login attempts",
+                           "test_type":  "positive",
+                           "preconditions":  [
+                                                 "check_login(0) returns \u0027allowed\u0027"
+                                             ],
+                           "steps":  [
+                                         "Define test_1() function that asserts check_login(0) == \u0027allowed\u0027"
+                                     ],
+                           "expected_result":  "allowed",
+                           "pytest_code":  "def test_1():\n    assert check_login(0) == \u0027allowed\u0027"
+                       },
+                       {
+                           "id":  "2",
+                           "scenario_id":  "2",
+                           "title":  "Boundary: Account is allowed when exactly four consecutive failed login attempts",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "check_login(4) returns \u0027allowed\u0027"
+                                             ],
+                           "steps":  [
+                                         "Define test_2() function that asserts check_login(4) == \u0027allowed\u0027"
+                                     ],
+                           "expected_result":  "allowed",
+                           "pytest_code":  "def test_2():\n    assert check_login(4) == \u0027allowed\u0027"
+                       },
+                       {
+                           "id":  "3",
+                           "scenario_id":  "3",
+                           "title":  "Boundary: Account is locked when exactly six consecutive failed login attempts",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "check_login(6) returns \u0027locked\u0027"
+                                             ],
+                           "steps":  [
+                                         "Define test_3() function that asserts check_login(6) == \u0027locked\u0027"
+                                     ],
+                           "expected_result":  "locked",
+                           "pytest_code":  "def test_3():\n    assert check_login(6) == \u0027locked\u0027"
+                       }
+                   ],
+    "pytest_code":  "def check_login(attempts: int) -\u003e str:\n    if attempts \u003e= 5:\n        return \"locked\"\n    return \"allowed\"\n\ndef test_1():\n    assert check_login(0) == \u0027allowed\u0027\n\ndef test_2():\n    assert check_login(4) == \u0027allowed\u0027\n\ndef test_3():\n    assert check_login(6) == \u0027locked\u0027\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  3,
+                          "passed":  3,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "...                                                                      [100%]\n3 passed in 0.34s\n",
+                          "stderr":  ""
+                      }
+}

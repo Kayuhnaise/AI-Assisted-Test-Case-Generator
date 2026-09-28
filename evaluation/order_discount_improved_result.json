@@ -1,0 +1,133 @@
+{
+    "requirement":  "A discount shall be applied when the order total is $100 or greater.",
+    "scenarios":  [
+                      {
+                          "id":  "boundary_100.0",
+                          "category":  "boundary",
+                          "description":  "Order total is exactly $100.0"
+                      },
+                      {
+                          "id":  "boundary_99.999",
+                          "category":  "boundary",
+                          "description":  "Order total is $99.999, which is less than $100.0"
+                      },
+                      {
+                          "id":  "boundary_100.0001",
+                          "category":  "boundary",
+                          "description":  "Order total is $100.0001, which is greater than $100.0"
+                      },
+                      {
+                          "id":  "negative_negative",
+                          "category":  "negative",
+                          "description":  "Order total is negative (e.g., -$1.0)"
+                      },
+                      {
+                          "id":  "edge_0",
+                          "category":  "edge",
+                          "description":  "Order total is $0.0 (no items)"
+                      },
+                      {
+                          "id":  "edge_very_large",
+                          "category":  "edge",
+                          "description":  "Order total is a very large value (e.g., 1e100)"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "1",
+                           "scenario_id":  "boundary_100.0",
+                           "title":  "Boundary: 100.0",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Input value is 100.0"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount(100.0)"
+                                     ],
+                           "expected_result":  "value = 90.0",
+                           "pytest_code":  "def test_boundary_100_0():\n    assert apply_discount(100.0) == 90.0"
+                       },
+                       {
+                           "id":  "2",
+                           "scenario_id":  "boundary_99.999",
+                           "title":  "Boundary: 99.999",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Input value is 99.999"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount(99.999)"
+                                     ],
+                           "expected_result":  "value = 99.999",
+                           "pytest_code":  "def test_boundary_99_999():\n    assert apply_discount(99.999) == 99.999"
+                       },
+                       {
+                           "id":  "3",
+                           "scenario_id":  "boundary_100.0001",
+                           "title":  "Boundary: 100.0001",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Input value is 100.0001"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount(100.0001)"
+                                     ],
+                           "expected_result":  "value = 90.00009",
+                           "pytest_code":  "def test_boundary_100_0001():\n    assert apply_discount(100.0001) == 90.00009"
+                       },
+                       {
+                           "id":  "4",
+                           "scenario_id":  "negative_negative",
+                           "title":  "Negative: -1.0",
+                           "test_type":  "negative",
+                           "preconditions":  [
+                                                 "Input value is -1.0"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount(-1.0)"
+                                     ],
+                           "expected_result":  "value = -1.0",
+                           "pytest_code":  "def test_negative_negative():\n    assert apply_discount(-1.0) == -1.0"
+                       },
+                       {
+                           "id":  "5",
+                           "scenario_id":  "edge_0",
+                           "title":  "Edge: 0.0",
+                           "test_type":  "edge",
+                           "preconditions":  [
+                                                 "Input value is 0.0"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount(0.0)"
+                                     ],
+                           "expected_result":  "value = 0.0",
+                           "pytest_code":  "def test_edge_0():\n    assert apply_discount(0.0) == 0.0"
+                       },
+                       {
+                           "id":  "6",
+                           "scenario_id":  "edge_very_large",
+                           "title":  "Edge: 1e100",
+                           "test_type":  "edge",
+                           "preconditions":  [
+                                                 "Input value is 1e100"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount(1e100)"
+                                     ],
+                           "expected_result":  "value = 9e100",
+                           "pytest_code":  "def test_edge_very_large():\n    assert apply_discount(1e100) == 9e100"
+                       }
+                   ],
+    "pytest_code":  "def apply_discount(order_total: float) -\u003e float:\n    if order_total \u003e= 100:\n        return order_total * 0.9\n    return order_total\n\ndef test_boundary_100_0():\n    assert apply_discount(100.0) == 90.0\n\ndef test_boundary_99_999():\n    assert apply_discount(99.999) == 99.999\n\ndef test_boundary_100_0001():\n    assert apply_discount(100.0001) == 90.00009\n\ndef test_negative_negative():\n    assert apply_discount(-1.0) == -1.0\n\ndef test_edge_0():\n    assert apply_discount(0.0) == 0.0\n\ndef test_edge_very_large():\n    assert apply_discount(1e100) == 9e100\n",
+    "pytest_result":  {
+                          "status":  "failed",
+                          "exit_code":  1,
+                          "tests_run":  6,
+                          "passed":  5,
+                          "failed":  1,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  ".....F                                                                   [100%]\n================================== FAILURES ===================================\n____________________________ test_edge_very_large _____________________________\ntest_generated.py:22: in test_edge_very_large\n    assert apply_discount(1e100) == 9e100\nE   assert 9e+99 == 9e+100\nE    +  where 9e+99 = apply_discount(1e+100)\n=========================== short test summary info ===========================\nFAILED test_generated.py::test_edge_very_large - assert 9e+99 == 9e+100\n1 failed, 5 passed in 0.32s\n",
+                          "stderr":  ""
+                      }
+}

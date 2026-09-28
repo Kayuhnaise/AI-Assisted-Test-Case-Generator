@@ -1,0 +1,76 @@
+{
+    "requirement":  "A discount shall be applied when the order total is $100 or greater.",
+    "scenarios":  [
+                      {
+                          "id":  "1",
+                          "category":  "positive",
+                          "description":  "order_total is exactly 100.0"
+                      },
+                      {
+                          "id":  "2",
+                          "category":  "boundary",
+                          "description":  "order_total is just below 100"
+                      },
+                      {
+                          "id":  "3",
+                          "category":  "boundary",
+                          "description":  "order_total is just above 100"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "1",
+                           "scenario_id":  "1",
+                           "title":  "Positive test case",
+                           "test_type":  "positive",
+                           "preconditions":  [
+                                                 "order_total \u003e= 100"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount with 100.0"
+                                     ],
+                           "expected_result":  "90.0",
+                           "pytest_code":  "def test_1():\n    assert apply_discount(100.0) == 90.0"
+                       },
+                       {
+                           "id":  "2",
+                           "scenario_id":  "2",
+                           "title":  "Boundary test case below 100",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "order_total \u003c 100"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount with 99.99999999999999"
+                                     ],
+                           "expected_result":  "99.99999999999999",
+                           "pytest_code":  "def test_2():\n    assert apply_discount(99.99999999999999) == 99.99999999999999"
+                       },
+                       {
+                           "id":  "3",
+                           "scenario_id":  "3",
+                           "title":  "Boundary test case above 100",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "order_total \u003e 100"
+                                             ],
+                           "steps":  [
+                                         "Call apply_discount with 100.00000000000001"
+                                     ],
+                           "expected_result":  "90.00000000000001",
+                           "pytest_code":  "def test_3():\n    assert apply_discount(100.00000000000001) == 90.00000000000001"
+                       }
+                   ],
+    "pytest_code":  "def apply_discount(order_total: float) -\u003e float:\n    if order_total \u003e= 100:\n        return order_total * 0.9\n    return order_total\n\ndef test_1():\n    assert apply_discount(100.0) == 90.0\n\ndef test_2():\n    assert apply_discount(99.99999999999999) == 99.99999999999999\n\ndef test_3():\n    assert apply_discount(100.00000000000001) == 90.00000000000001\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  3,
+                          "passed":  3,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "...                                                                      [100%]\n3 passed in 0.48s\n",
+                          "stderr":  ""
+                      }
+}

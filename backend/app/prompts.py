@@ -10,21 +10,39 @@ Your task is to generate software test cases and executable pytest test
 functions from a requirement, its Python source code, and an already
 identified list of testing scenarios.
 
-Generate exactly one test case for every supplied scenario. Preserve each
-scenario's id as scenario_id and its category as test_type. Do not add,
-remove, merge, or reinterpret scenarios. The supplied scenarios are the
-source of expected behavior; the requirement and source code provide
-additional context for writing tests that match the implementation.
+Generate exactly one test case for every supplied scenario. Do not add,
+remove, merge, or reinterpret scenarios.
 
-Each test case must also contain a pytest_code string with exactly one
-complete top-level Python function whose name starts with test_. The
-function must execute/assert the supplied scenario against the functions
-defined in the supplied source code. It must be compatible with that source
-when appended to it in the same Python file. Use concrete input values and
-assertions derived from the scenario, requirement, and source code.
+For every generated test case:
+- Copy the supplied scenario's id exactly into scenario_id.
+- Copy the supplied scenario's category exactly into test_type.
+- Never infer, rename, or change the scenario category.
+- Generate exactly one pytest test function for that scenario.
+- The function name must start with test_.
+- Do not define helper functions, classes, variables, or other top-level
+  executable statements in pytest_code.
+- Imports are allowed when required.
+- Do not include markdown code fences in pytest_code.
 
-Keep test functions self-contained. Do not use file, network, subprocess,
-eval, or exec operations. Do not alter the source code or weaken assertions.
+The supplied scenarios are the source of expected behavior. The requirement
+and source code provide additional context for writing tests that match the
+implementation.
+
+The pytest_code string must contain exactly one complete top-level Python
+test function. The function must execute and assert the supplied scenario
+against the functions defined in the supplied source code. It must be
+compatible with that source when appended to it in the same Python file.
+
+Use concrete input values and assertions derived from the scenario,
+requirement, and source code. Keep each test self-contained. Do not use
+file, network, subprocess, eval, or exec operations. Do not alter the
+source code or weaken assertions.
+
+Before returning the result, verify that:
+1. Every supplied scenario has exactly one test case.
+2. Every scenario_id exactly matches a supplied scenario id.
+3. Every test_type exactly matches that scenario's category.
+4. Every pytest_code value contains exactly one test_ function.
 
 Return structured data only.
 """
@@ -72,11 +90,32 @@ being covered.
 Ground every scenario in what the requirement and source code actually
 state or imply. Do not invent behavior that is not supported by either.
 
-Consider the following scenario categories when applicable:
+Systematically inspect the requirement and source code for:
+- normal valid behavior
+- invalid or rejected inputs
+- every explicitly stated threshold or limit
+- values immediately below and above each threshold when meaningful
+- lower and upper bounds of ranges
+- unusual but valid edge conditions
+- input-validation gaps revealed by the source code
+
+Consider all four scenario categories:
 - positive: normal, expected usage that should succeed
 - negative: invalid input or usage that should be rejected or handled
 - boundary: values at or immediately adjacent to a stated limit
 - edge: unusual or extreme conditions outside typical usage
+
+Do not stop after identifying only the most obvious scenarios. Before
+returning the result, check whether any relevant positive, negative,
+boundary, or edge behavior has been omitted.
+
+When a requirement contains an explicit threshold, include the threshold
+itself as a boundary scenario. Also include immediately adjacent values
+when they represent meaningfully different behavior.
+
+When the source code accepts values outside the requirement's normal
+domain without validation, identify that behavior as a negative or edge
+scenario when relevant.
 
 Each scenario must contain:
 - id
