@@ -1,0 +1,76 @@
+{
+    "requirement":  "A discount shall be applied when the order total is $100 or greater.",
+    "scenarios":  [
+                      {
+                          "id":  "boundary_100_0",
+                          "category":  "boundary",
+                          "description":  "Threshold value exactly at 100.0 (the stated limit). This tests if the code correctly handles the precise boundary condition where discount applies."
+                      },
+                      {
+                          "id":  "boundary_just_below",
+                          "category":  "boundary",
+                          "description":  "Value just below 100.0 (e.g., 99.99999999999999). This tests if the code correctly handles inputs that are slightly less than the threshold without triggering the discount."
+                      },
+                      {
+                          "id":  "boundary_just_above",
+                          "category":  "boundary",
+                          "description":  "Value just above 100.0 (e.g., 100.00000000000001). This tests if the code correctly handles inputs that are slightly greater than the threshold and applies the discount as expected."
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "boundary_100_0",
+                           "scenario_id":  "boundary_100_0",
+                           "title":  "Boundary: 100.0",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "order_total = 100.0"
+                                             ],
+                           "steps":  [
+                                         "Calculate discounted price using apply_discount(100.0)"
+                                     ],
+                           "expected_result":  "90.0",
+                           "pytest_code":  "def test_boundary_100_0():\n    assert apply_discount(100.0) == 90.0"
+                       },
+                       {
+                           "id":  "boundary_just_below",
+                           "scenario_id":  "boundary_just_below",
+                           "title":  "Boundary: Just below 100.0",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "order_total = 99.99999999999999"
+                                             ],
+                           "steps":  [
+                                         "Calculate discounted price using apply_discount(99.99999999999999)"
+                                     ],
+                           "expected_result":  "99.99999999999999",
+                           "pytest_code":  "def test_boundary_just_below():\n    assert apply_discount(99.99999999999999) == 99.99999999999999"
+                       },
+                       {
+                           "id":  "boundary_just_above",
+                           "scenario_id":  "boundary_just_above",
+                           "title":  "Boundary: Just above 100.0",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "order_total = 100.00000000000001"
+                                             ],
+                           "steps":  [
+                                         "Calculate discounted price using apply_discount(100.00000000000001)"
+                                     ],
+                           "expected_result":  "90.00000000000001",
+                           "pytest_code":  "def test_boundary_just_above():\n    assert apply_discount(100.00000000000001) == 90.00000000000001"
+                       }
+                   ],
+    "pytest_code":  "def apply_discount(order_total: float) -\u003e float:\n    if order_total \u003e= 100:\n        return order_total * 0.9\n    return order_total\n\ndef test_boundary_100_0():\n    assert apply_discount(100.0) == 90.0\n\ndef test_boundary_just_below():\n    assert apply_discount(99.99999999999999) == 99.99999999999999\n\ndef test_boundary_just_above():\n    assert apply_discount(100.00000000000001) == 90.00000000000001\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  3,
+                          "passed":  3,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "...                                                                      [100%]\n3 passed in 0.28s\n",
+                          "stderr":  ""
+                      }
+}

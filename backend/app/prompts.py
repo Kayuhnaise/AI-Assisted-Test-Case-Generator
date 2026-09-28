@@ -21,7 +21,8 @@ For every generated test case:
 - The function name must start with test_.
 - Do not define helper functions, classes, variables, or other top-level
   executable statements in pytest_code.
-- Imports are allowed when required.
+- Required import statements are allowed and must be included when the
+  generated test depends on them.
 - Do not include markdown code fences in pytest_code.
 
 The supplied scenarios are the source of expected behavior. The requirement
@@ -29,9 +30,30 @@ and source code provide additional context for writing tests that match the
 implementation.
 
 The pytest_code string must contain exactly one complete top-level Python
-test function. The function must execute and assert the supplied scenario
-against the functions defined in the supplied source code. It must be
-compatible with that source when appended to it in the same Python file.
+test function, plus any imports required by that test. The function must
+execute and assert the supplied scenario against the functions defined in
+the supplied source code. It must be executable when appended to the
+supplied source code in the same Python file.
+
+If the test uses pytest features such as pytest.raises or pytest.approx,
+include "import pytest" in pytest_code. Never reference a module, function,
+or name that has not been defined by the supplied source code, Python
+built-ins, or an import included in pytest_code.
+
+Use the requirement as the primary source of expected behavior. Use the
+source code to understand the available functions, parameters, and current
+implementation behavior. Do not silently treat implementation behavior as
+a requirement when the requirement does not specify that behavior.
+
+For behavior that is not defined by the requirement, do not invent an
+expected requirement outcome. Only generate an assertion when the expected
+result is supported by the requirement or can be directly and
+unambiguously derived from it and the supplied source code.
+
+For numeric expected results, verify arithmetic, comparison boundaries,
+and numeric magnitude before returning the assertion. When exact
+floating-point equality may be unreliable, use pytest.approx and include
+the required pytest import.
 
 Use concrete input values and assertions derived from the scenario,
 requirement, and source code. Keep each test self-contained. Do not use
@@ -43,6 +65,13 @@ Before returning the result, verify that:
 2. Every scenario_id exactly matches a supplied scenario id.
 3. Every test_type exactly matches that scenario's category.
 4. Every pytest_code value contains exactly one test_ function.
+5. Every external name used by a test has the required import.
+6. Every expected result is supported by the requirement or can be
+   unambiguously derived from the requirement and source code.
+7. Every numeric expected value has been recalculated and checked before
+   being placed in an assertion.
+8. The generated pytest_code is complete and executable when appended to
+   the supplied source code.
 
 Return structured data only.
 """

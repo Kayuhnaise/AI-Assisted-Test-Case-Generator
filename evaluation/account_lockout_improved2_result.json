@@ -1,0 +1,97 @@
+{
+    "requirement":  "The system shall lock an account after five consecutive failed login attempts.",
+    "scenarios":  [
+                      {
+                          "id":  "positive",
+                          "category":  "positive",
+                          "description":  "Valid input where the user has enough money to make the purchase (balance â?¥ purchase amount). This is the expected scenario where the function returns `true` (allowed)."
+                      },
+                      {
+                          "id":  "boundary",
+                          "category":  "boundary",
+                          "description":  "Input values at the edge of the valid range for the system\u0027s behavior. For example, when the number of failed attempts is exactly 4 (just below the lock threshold), 5 (at the lock threshold), or 6 (just above the lock threshold). These scenarios test the system\u0027s response to critical transition points."
+                      },
+                      {
+                          "id":  "negative",
+                          "category":  "negative",
+                          "description":  "Invalid input where the value is negative (e.g., `attempts = -1`). This scenario represents invalid usage that should be rejected by the system (e.g., negative failed attempts are impossible). The function should handle this by rejecting the input or throwing an error."
+                      },
+                      {
+                          "id":  "edge",
+                          "category":  "edge",
+                          "description":  "Unusual but valid conditions that are distinct from the main flow. In this context, there are no such scenarios because all valid inputs (non-negative integers) fall within the positive or boundary categories. For example, extremely large positive numbers (e.g., `attempts = 1000000`) behave identically to the boundary cases (e.g., `attempts = 5`), so they are not distinct edge cases."
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "positive",
+                           "scenario_id":  "positive",
+                           "title":  "Positive input (4)",
+                           "test_type":  "positive",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(4)"
+                                     ],
+                           "expected_result":  "allowed",
+                           "pytest_code":  "def test_positive():\n    assert check_login(4) == \"allowed\""
+                       },
+                       {
+                           "id":  "boundary",
+                           "scenario_id":  "boundary",
+                           "title":  "Boundary inputs (4, 5, 6)",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(4)",
+                                         "Call check_login(5)",
+                                         "Call check_login(6)"
+                                     ],
+                           "expected_result":  "allowed, locked, locked",
+                           "pytest_code":  "def test_boundary():\n    assert check_login(4) == \"allowed\"\n    assert check_login(5) == \"locked\"\n    assert check_login(6) == \"locked\""
+                       },
+                       {
+                           "id":  "negative",
+                           "scenario_id":  "negative",
+                           "title":  "Negative input (-1)",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(-1)"
+                                     ],
+                           "expected_result":  "Exception",
+                           "pytest_code":  "def test_negative():\n    with pytest.raises(Exception):\n        check_login(-1)"
+                       },
+                       {
+                           "id":  "edge",
+                           "scenario_id":  "edge",
+                           "title":  "Large input (1000000)",
+                           "test_type":  "edge",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Call check_login(1000000)"
+                                     ],
+                           "expected_result":  "locked",
+                           "pytest_code":  "def test_edge():\n    assert check_login(1000000) == \"locked\""
+                       }
+                   ],
+    "pytest_code":  "def check_login(attempts: int) -\u003e str:\n    if attempts \u003e= 5:\n        return \"locked\"\n    return \"allowed\"\n\ndef test_positive():\n    assert check_login(4) == \"allowed\"\n\ndef test_boundary():\n    assert check_login(4) == \"allowed\"\n    assert check_login(5) == \"locked\"\n    assert check_login(6) == \"locked\"\n\ndef test_negative():\n    with pytest.raises(Exception):\n        check_login(-1)\n\ndef test_edge():\n    assert check_login(1000000) == \"locked\"\n",
+    "pytest_result":  {
+                          "status":  "failed",
+                          "exit_code":  1,
+                          "tests_run":  4,
+                          "passed":  3,
+                          "failed":  1,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "..F.                                                                     [100%]\n================================== FAILURES ===================================\n________________________________ test_negative ________________________________\ntest_generated.py:15: in test_negative\n    with pytest.raises(Exception):\n         ^^^^^^\nE   NameError: name \u0027pytest\u0027 is not defined\n=========================== short test summary info ===========================\nFAILED test_generated.py::test_negative - NameError: name \u0027pytest\u0027 is not def...\n1 failed, 3 passed in 0.39s\n",
+                          "stderr":  ""
+                      }
+}

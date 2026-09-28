@@ -1,0 +1,79 @@
+{
+    "requirement":  "The system shall compute the result of dividing two numbers and shall reject division by zero.",
+    "scenarios":  [
+                      {
+                          "id":  "pos_1",
+                          "category":  "positive",
+                          "description":  "Division of two numbers with non-zero denominator returns the correct quotient."
+                      },
+                      {
+                          "id":  "neg_1",
+                          "category":  "negative",
+                          "description":  "Division by zero raises ValueError."
+                      },
+                      {
+                          "id":  "boundary_1",
+                          "category":  "boundary",
+                          "description":  "Denominator exactly zero (threshold itself)."
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "pos_1",
+                           "scenario_id":  "pos_1",
+                           "title":  "Positive division with exact result",
+                           "test_type":  "positive",
+                           "preconditions":  [
+                                                 "Dividend is 4.0",
+                                                 "Divisor is 2.0"
+                                             ],
+                           "steps":  [
+                                         "Call divide(4.0, 2.0)"
+                                     ],
+                           "expected_result":  "2.0",
+                           "pytest_code":  "def test_pos_1():\n    assert divide(4.0, 2.0) == 2.0"
+                       },
+                       {
+                           "id":  "neg_1",
+                           "scenario_id":  "neg_1",
+                           "title":  "Negative division with denominator zero",
+                           "test_type":  "negative",
+                           "preconditions":  [
+                                                 "Dividend is 1.0",
+                                                 "Divisor is 0.0"
+                                             ],
+                           "steps":  [
+                                         "Call divide(1.0, 0.0)"
+                                     ],
+                           "expected_result":  "ValueError",
+                           "pytest_code":  "import pytest\n\ndef test_neg_1():\n    with pytest.raises(ValueError):\n        divide(1.0, 0.0)"
+                       },
+                       {
+                           "id":  "boundary_1",
+                           "scenario_id":  "boundary_1",
+                           "title":  "Boundary division with denominator exactly zero",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Dividend is 1.0",
+                                                 "Divisor is 0.0"
+                                             ],
+                           "steps":  [
+                                         "Call divide(1.0, 0.0)"
+                                     ],
+                           "expected_result":  "ValueError",
+                           "pytest_code":  "import pytest\n\ndef test_boundary_1():\n    with pytest.raises(ValueError):\n        divide(1.0, 0.0)"
+                       }
+                   ],
+    "pytest_code":  "def divide(numerator: float, denominator: float) -\u003e float:\n    if denominator == 0:\n        raise ValueError(\"Cannot divide by zero\")\n    return numerator / denominator\n\ndef test_pos_1():\n    assert divide(4.0, 2.0) == 2.0\n\nimport pytest\n\ndef test_neg_1():\n    with pytest.raises(ValueError):\n        divide(1.0, 0.0)\n\nimport pytest\n\ndef test_boundary_1():\n    with pytest.raises(ValueError):\n        divide(1.0, 0.0)\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  3,
+                          "passed":  3,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "...                                                                      [100%]\n3 passed in 0.26s\n",
+                          "stderr":  ""
+                      }
+}
