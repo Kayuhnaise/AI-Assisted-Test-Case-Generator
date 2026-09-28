@@ -1,0 +1,114 @@
+{
+    "requirement":  "A discount shall be applied when the order total is $100 or greater.",
+    "scenarios":  [
+                      {
+                          "id":  "pos-1",
+                          "category":  "positive",
+                          "description":  "order total is 100 or greater"
+                      },
+                      {
+                          "id":  "bnd-1",
+                          "category":  "boundary",
+                          "description":  "order total equals 100.0"
+                      },
+                      {
+                          "id":  "bnd-2",
+                          "category":  "boundary",
+                          "description":  "order total is 99.999 (just below threshold)"
+                      },
+                      {
+                          "id":  "bnd-3",
+                          "category":  "boundary",
+                          "description":  "order total is 100.001 (just above threshold)"
+                      },
+                      {
+                          "id":  "neg-1",
+                          "category":  "negative",
+                          "description":  "order total is negative"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "test_pos_1",
+                           "scenario_id":  "pos-1",
+                           "title":  "Positive number test",
+                           "test_type":  "positive",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Assert that is_positive(5) returns True"
+                                     ],
+                           "expected_result":  "True",
+                           "pytest_code":  "def test_pos_1():\n    assert is_positive(5) == True"
+                       },
+                       {
+                           "id":  "test_bnd_1",
+                           "scenario_id":  "bnd-1",
+                           "title":  "Boundary zero test",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Assert that is_positive(0) returns False"
+                                     ],
+                           "expected_result":  "False",
+                           "pytest_code":  "def test_bnd_1():\n    assert is_positive(0) == False"
+                       },
+                       {
+                           "id":  "test_bnd_2",
+                           "scenario_id":  "bnd-2",
+                           "title":  "Boundary negative zero test",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Assert that is_positive(-0) returns False"
+                                     ],
+                           "expected_result":  "False",
+                           "pytest_code":  "def test_bnd_2():\n    assert is_positive(-0) == False"
+                       },
+                       {
+                           "id":  "test_bnd_3",
+                           "scenario_id":  "bnd-3",
+                           "title":  "Boundary negative number test",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Assert that is_positive(-1) returns False"
+                                     ],
+                           "expected_result":  "False",
+                           "pytest_code":  "def test_bnd_3():\n    assert is_positive(-1) == False"
+                       },
+                       {
+                           "id":  "test_neg_1",
+                           "scenario_id":  "neg-1",
+                           "title":  "Negative number test",
+                           "test_type":  "negative",
+                           "preconditions":  [
+
+                                             ],
+                           "steps":  [
+                                         "Assert that is_positive(-2) returns False"
+                                     ],
+                           "expected_result":  "False",
+                           "pytest_code":  "def test_neg_1():\n    assert is_positive(-2) == False"
+                       }
+                   ],
+    "pytest_code":  "def apply_discount(order_total: float) -\u003e float:\n    if order_total \u003e= 100:\n        return order_total * 0.9\n    return order_total\n\ndef test_pos_1():\n    assert is_positive(5) == True\n\ndef test_bnd_1():\n    assert is_positive(0) == False\n\ndef test_bnd_2():\n    assert is_positive(-0) == False\n\ndef test_bnd_3():\n    assert is_positive(-1) == False\n\ndef test_neg_1():\n    assert is_positive(-2) == False\n",
+    "pytest_result":  {
+                          "status":  "failed",
+                          "exit_code":  1,
+                          "tests_run":  5,
+                          "passed":  0,
+                          "failed":  5,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "FFFFF                                                                    [100%]\n================================== FAILURES ===================================\n_________________________________ test_pos_1 __________________________________\ntest_generated.py:7: in test_pos_1\n    assert is_positive(5) == True\n           ^^^^^^^^^^^\nE   NameError: name \u0027is_positive\u0027 is not defined\n_________________________________ test_bnd_1 __________________________________\ntest_generated.py:10: in test_bnd_1\n    assert is_positive(0) == False\n           ^^^^^^^^^^^\nE   NameError: name \u0027is_positive\u0027 is not defined\n_________________________________ test_bnd_2 __________________________________\ntest_generated.py:13: in test_bnd_2\n    assert is_positive(-0) == False\n           ^^^^^^^^^^^\nE   NameError: name \u0027is_positive\u0027 is not defined\n_________________________________ test_bnd_3 __________________________________\ntest_generated.py:16: in test_bnd_3\n    assert is_positive(-1) == False\n           ^^^^^^^^^^^\nE   NameError: name \u0027is_positive\u0027 is not defined\n_________________________________ test_neg_1 __________________________________\ntest_generated.py:19: in test_neg_1\n    assert is_positive(-2) == False\n           ^^^^^^^^^^^\nE   NameError: name \u0027is_positive\u0027 is not defined\n=========================== short test summary info ===========================\nFAILED test_generated.py::test_pos_1 - NameError: name \u0027is_positive\u0027 is not d...\nFAILED test_generated.py::test_bnd_1 - NameError: name \u0027is_positive\u0027 is not d...\nFAILED test_generated.py::test_bnd_2 - NameError: name \u0027is_positive\u0027 is not d...\nFAILED test_generated.py::test_bnd_3 - NameError: name \u0027is_positive\u0027 is not d...\nFAILED test_generated.py::test_neg_1 - NameError: name \u0027is_positive\u0027 is not d...\n5 failed in 0.34s\n",
+                          "stderr":  ""
+                      }
+}

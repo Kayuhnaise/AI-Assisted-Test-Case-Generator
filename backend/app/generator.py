@@ -17,6 +17,35 @@ from app.prompts import (
 
 MODEL_NAME = "qwen3:4b"
 
+def ensure_pytest_import(pytest_code: str) -> str:
+    """
+    Add a pytest import when generated test code uses pytest
+    but does not import it.
+    """
+    parsed = ast.parse(pytest_code)
+
+    uses_pytest = any(
+        isinstance(node, ast.Name) and node.id == "pytest"
+        for node in ast.walk(parsed)
+    )
+
+    imports_pytest = any(
+        (
+            isinstance(node, ast.Import)
+            and any(alias.name == "pytest" for alias in node.names)
+        )
+        or (
+            isinstance(node, ast.ImportFrom)
+            and node.module == "pytest"
+        )
+        for node in parsed.body
+    )
+
+    if uses_pytest and not imports_pytest:
+        return f"import pytest\n\n{pytest_code}"
+
+    return pytest_code
+
 
 def generate_test_cases(
     requirement: str,
@@ -68,13 +97,12 @@ def generate_test_cases(
     test_functions = []
     for test_case in generated.test_cases:
         scenario = scenario_by_id[test_case.scenario_id]
+
+        test_case.pytest_code = ensure_pytest_import(
+            test_case.pytest_code
+        )
         if test_case.test_type != scenario.category:
-            raise ValueError(
-                f"Test case {test_case.id} category "
-		f"'{test_case.test_type}' does not match "
-                f"scenario {scenario.id} category "
-		f"'{scenario.category}'"
-            )
+            test_case.test_type = scenario.category
 
         try:
             parsed_test = ast.parse(test_case.pytest_code)

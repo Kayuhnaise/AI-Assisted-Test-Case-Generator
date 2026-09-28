@@ -1,0 +1,95 @@
+{
+    "requirement":  "The system shall compute the result of dividing two numbers and shall reject division by zero.",
+    "scenarios":  [
+                      {
+                          "id":  "boundary_denominator_zero",
+                          "category":  "boundary",
+                          "description":  "Denominator is exactly zero (the threshold)"
+                      },
+                      {
+                          "id":  "positive_denominator_nonzero",
+                          "category":  "positive",
+                          "description":  "Denominator is non-zero (e.g., 1.0)"
+                      },
+                      {
+                          "id":  "boundary_denominator_very_small_positive",
+                          "category":  "boundary",
+                          "description":  "Denominator is a very small positive number (e.g., 1e-10)"
+                      },
+                      {
+                          "id":  "boundary_denominator_very_small_negative",
+                          "category":  "boundary",
+                          "description":  "Denominator is a very small negative number (e.g., -1e-10)"
+                      }
+                  ],
+    "test_cases":  [
+                       {
+                           "id":  "boundary_denominator_zero",
+                           "scenario_id":  "boundary_denominator_zero",
+                           "title":  "Test division by zero",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Denominator is 0.0"
+                                             ],
+                           "steps":  [
+                                         "Call divide(1.0, 0.0)"
+                                     ],
+                           "expected_result":  "ValueError",
+                           "pytest_code":  "import pytest\n\ndef test_boundary_denominator_zero():\n    with pytest.raises(ValueError):\n        divide(1.0, 0.0)"
+                       },
+                       {
+                           "id":  "positive_denominator_nonzero",
+                           "scenario_id":  "positive_denominator_nonzero",
+                           "title":  "Test positive non-zero denominator",
+                           "test_type":  "positive",
+                           "preconditions":  [
+                                                 "Denominator is positive and non-zero"
+                                             ],
+                           "steps":  [
+                                         "Call divide(1.0, 1.0)"
+                                     ],
+                           "expected_result":  "1.0",
+                           "pytest_code":  "def test_positive_denominator_nonzero():\n    assert divide(1.0, 1.0) == 1.0"
+                       },
+                       {
+                           "id":  "boundary_denominator_very_small_positive",
+                           "scenario_id":  "boundary_denominator_very_small_positive",
+                           "title":  "Test very small positive denominator",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Denominator is a very small positive number (e.g., 1e-10)"
+                                             ],
+                           "steps":  [
+                                         "Call divide(1.0, 1e-10)"
+                                     ],
+                           "expected_result":  "1e10",
+                           "pytest_code":  "def test_boundary_denominator_very_small_positive():\n    assert divide(1.0, 1e-10) == 1e10"
+                       },
+                       {
+                           "id":  "boundary_denominator_very_small_negative",
+                           "scenario_id":  "boundary_denominator_very_small_negative",
+                           "title":  "Test very small negative denominator",
+                           "test_type":  "boundary",
+                           "preconditions":  [
+                                                 "Denominator is a very small negative number (e.g., -1e-10)"
+                                             ],
+                           "steps":  [
+                                         "Call divide(1.0, -1e-10)"
+                                     ],
+                           "expected_result":  "-1e10",
+                           "pytest_code":  "def test_boundary_denominator_very_small_negative():\n    assert divide(1.0, -1e-10) == -1e10"
+                       }
+                   ],
+    "pytest_code":  "def divide(numerator: float, denominator: float) -\u003e float:\n    if denominator == 0:\n        raise ValueError(\"Cannot divide by zero\")\n    return numerator / denominator\n\nimport pytest\n\ndef test_boundary_denominator_zero():\n    with pytest.raises(ValueError):\n        divide(1.0, 0.0)\n\ndef test_positive_denominator_nonzero():\n    assert divide(1.0, 1.0) == 1.0\n\ndef test_boundary_denominator_very_small_positive():\n    assert divide(1.0, 1e-10) == 1e10\n\ndef test_boundary_denominator_very_small_negative():\n    assert divide(1.0, -1e-10) == -1e10\n",
+    "pytest_result":  {
+                          "status":  "passed",
+                          "exit_code":  0,
+                          "tests_run":  4,
+                          "passed":  4,
+                          "failed":  0,
+                          "errors":  0,
+                          "skipped":  0,
+                          "stdout":  "....                                                                     [100%]\n4 passed in 0.22s\n",
+                          "stderr":  ""
+                      }
+}
