@@ -5,6 +5,10 @@ from app.models import (
     DBMSCoverageResponse,
     DBMSRequirementInput,
     DBMSScenarioResponse,
+    DBMSSQLGenerationRequest,
+    DBMSSQLGenerationResponse,
+    DBMSSQLValidationRequest,
+    DBMSSQLValidationResponse,
     ScenarioInput,
     ScenarioResponse,
     TestCaseResponse,
@@ -14,6 +18,9 @@ from app.dbms_scenarios import (
     evaluate_dbms_scenario_coverage,
     identify_dbms_scenarios,
 )
+
+from app.dbms_sql_generator import generate_dbms_sql_tests
+from app.dbms_sql_validator import validate_sql_tests
 from app.generator import generate_test_cases, identify_scenarios
 from app.test_runner import run_pytest
 
@@ -86,4 +93,33 @@ def dbms_coverage(request: DBMSCoverageRequest):
     return evaluate_dbms_scenario_coverage(
         request.expert_scenarios,
         request.extracted_scenarios,
+    )
+
+
+@app.post(
+    "/dbms/generate",
+    response_model=DBMSSQLGenerationResponse,
+)
+def dbms_generate_sql(
+    request: DBMSSQLGenerationRequest,
+):
+    test_cases = generate_dbms_sql_tests(
+        requirement_document=request.requirement_document,
+        scenarios=request.scenarios,
+    )
+
+    return DBMSSQLGenerationResponse(
+        test_cases=test_cases
+    )
+
+
+@app.post(
+    "/dbms/validate",
+    response_model=DBMSSQLValidationResponse,
+)
+def dbms_validate_sql(
+    request: DBMSSQLValidationRequest,
+):
+    return validate_sql_tests(
+        request.test_cases
     )
