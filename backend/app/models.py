@@ -170,3 +170,111 @@ class TestCaseResponse(BaseModel):
     test_cases: List[TestCase]
     pytest_code: str
     pytest_result: PytestExecutionResult
+
+
+class SQLExpectedOutcome(BaseModel):
+    outcome_type: Literal[
+        "rows",
+        "scalar",
+        "row_count",
+        "error",
+        "database_state"
+    ]
+    expected_value: str | int | float | bool | None = None
+    expected_error: str | None = None
+    assertion_description: str = Field(min_length=1)
+
+
+
+class SQLVerificationAssertion(BaseModel):
+    query: str = Field(min_length=1)
+    expected_scalar: str | int | float | bool | None = None
+    expected_rows: list[
+        list[str | int | float | bool | None]
+    ] | None = None
+
+    @model_validator(mode="after")
+    def exactly_one_expected_result(self):
+        has_scalar = self.expected_scalar is not None
+        has_rows = self.expected_rows is not None
+
+        if has_scalar == has_rows:
+            raise ValueError(
+                "Provide exactly one of expected_scalar "
+                "or expected_rows"
+            )
+
+        return self
+
+
+
+class DBMSSQLTestCase(BaseModel):
+    id: str = Field(min_length=1)
+    scenario_id: str = Field(min_length=1)
+
+    title: str = Field(min_length=1)
+    category: Literal[
+        "positive", "negative", "boundary", "edge"
+    ]
+
+    sql_dialect: Literal["sqlite"]
+
+    preconditions: list[str]
+    constraints: list[str]
+
+    setup_sql: list[str]
+    test_sql: str = Field(min_length=1)
+    verification_assertions: list[SQLVerificationAssertion] = Field(
+        default_factory=list
+    )
+    verification_sql: list[str] = Field(default_factory=list)
+
+    expected_outcome: SQLExpectedOutcome
+
+    cleanup_sql: list[str] = Field(default_factory=list)
+
+
+class GeneratedDBMSSQLTests(BaseModel):
+    test_cases: list[DBMSSQLTestCase] = Field(min_length=1)
+
+
+class DBMSSQLGenerationRequest(BaseModel):
+    scenarios: list[DBMSScenario] = Field(min_length=1)
+    requirement_document: str = Field(min_length=1)
+
+
+class DBMSSQLGenerationResponse(BaseModel):
+    test_cases: list[DBMSSQLTestCase]
+
+
+class DBMSSQLValidationRequest(BaseModel):
+    test_cases: list[DBMSSQLTestCase] = Field(min_length=1)
+
+
+class DBMSSQLValidationResult(BaseModel):
+    test_case_id: str
+    scenario_id: str
+
+    status: Literal["passed", "failed", "error"]
+
+    setup_successful: bool
+    execution_successful: bool
+    assertion_passed: bool
+
+    expected_outcome: str
+    actual_outcome: str
+
+    errors: list[str] = Field(default_factory=list)
+
+
+class DBMSSQLValidationResponse(BaseModel):
+    total_tests: int
+    passed: int
+    failed: int
+    errors: int
+
+    validity_percentage: float
+    target_percentage: float
+    target_met: bool
+
+    results: list[DBMSSQLValidationResult]
