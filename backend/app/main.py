@@ -1,7 +1,19 @@
 from fastapi import FastAPI
 
-from app.models import ScenarioInput, ScenarioResponse, TestCaseResponse
+from app.models import (
+    DBMSCoverageRequest,
+    DBMSCoverageResponse,
+    DBMSRequirementInput,
+    DBMSScenarioResponse,
+    ScenarioInput,
+    ScenarioResponse,
+    TestCaseResponse,
+)
 
+from app.dbms_scenarios import (
+    evaluate_dbms_scenario_coverage,
+    identify_dbms_scenarios,
+)
 from app.generator import generate_test_cases, identify_scenarios
 from app.test_runner import run_pytest
 
@@ -57,4 +69,21 @@ def scenarios(request: ScenarioInput):
     return ScenarioResponse(
         requirement=request.requirement,
         scenarios=scenarios
+    )
+
+
+@app.post("/dbms/scenarios", response_model=DBMSScenarioResponse)
+def dbms_scenarios(request: DBMSRequirementInput):
+    scenarios = identify_dbms_scenarios(request.requirement_document)
+    return DBMSScenarioResponse(
+        requirement_document=request.requirement_document,
+        scenarios=scenarios,
+    )
+
+
+@app.post("/dbms/coverage", response_model=DBMSCoverageResponse)
+def dbms_coverage(request: DBMSCoverageRequest):
+    return evaluate_dbms_scenario_coverage(
+        request.expert_scenarios,
+        request.extracted_scenarios,
     )

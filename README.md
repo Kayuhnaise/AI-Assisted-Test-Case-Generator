@@ -1,4 +1,4 @@
-# AI-Assisted Requirement-to-Test Case Generator
+# Automated Test Case Generation for Database Systems via LLM-Driven Requirement Parsing
 
 ## Team Members
 
@@ -12,7 +12,7 @@
 
 ## Project Overview
 
-The **AI-Assisted Requirement-to-Test Case Generator** is a proof-of-concept AI4SE tool that converts natural-language software requirements and corresponding Python source code into structured test scenarios and executable pytest tests.
+The **Automated Test Case Generation for Database Systems via LLM-Driven Requirement Parsing** is a proof-of-concept AI4SE tool. Its original workflow converts natural-language requirements and Python source code into structured scenarios and executable pytest tests. A DBMS-focused workflow also extracts scenarios from plain-text or Markdown database requirement documents and measures their coverage against expert-labeled scenarios.
 
 The system uses a local Large Language Model (LLM) to:
 
@@ -203,6 +203,56 @@ Each scenario contains:
 - scenario ID;
 - category;
 - description.
+
+### `POST /dbms/scenarios`
+
+Accepts a plain-text or Markdown DBMS requirement document and extracts
+structured scenarios without requiring Python source code. Each scenario
+contains a precondition, behavior under test, and expected result, as well
+as an ID and category.
+
+Example request:
+
+```json
+{
+  "requirement_document": "# Transactions\nA committed transaction shall remain visible after a database restart."
+}
+```
+
+### `POST /dbms/coverage`
+
+Compares extracted scenarios with expert-labeled scenarios using the local
+LLM as a semantic judge. An expert scenario counts as covered only when one
+extracted scenario matches its **precondition**, **behavior under test**,
+and **expected result**. Each expert scenario is evaluated independently,
+so one extracted scenario may match multiple expert scenarios. The
+response includes the coverage percentage, matched scenario IDs,
+uncovered expert scenario IDs, and whether the 90% target was met.
+
+Provide both scenario sets in the request:
+
+```json
+{
+  "expert_scenarios": [
+    {
+      "id": "expert_1",
+      "category": "positive",
+      "precondition": "A transaction has committed.",
+      "behavior_under_test": "Read the committed row after restarting the database.",
+      "expected_result": "The committed row is still present."
+    }
+  ],
+  "extracted_scenarios": [
+    {
+      "id": "extracted_1",
+      "category": "positive",
+      "precondition": "The database contains a committed transaction.",
+      "behavior_under_test": "Restart the database and read the row.",
+      "expected_result": "The committed row remains available."
+    }
+  ]
+}
+```
 
 Supported categories include:
 
@@ -531,6 +581,26 @@ Coverage therefore increased from **28.6% at baseline to as high as 66.7%**, but
 
 This variability is an important finding of the project.
 
+## DBMS Extraction Coverage Target
+
+The DBMS workflow defines **at least 90% expert-scenario coverage** as its
+target. Coverage is calculated as:
+
+```text
+covered expert scenarios / total expert scenarios * 100
+```
+
+An expert scenario is covered when at least one extracted scenario is
+judged equivalent on all three required parts. The target is reported as
+met only when the measured score is at least 90%.
+
+The existing 21-scenario benchmark is for general requirements paired
+with Python source code; it is **not** a DBMS requirement-document
+benchmark. A DBMS coverage result must be calculated with a suitable
+expert-labeled DBMS scenario set using `POST /dbms/coverage`. The target is
+an evaluation goal, not a guarantee of extraction quality; no DBMS score
+above 90% is claimed without running that benchmark.
+
 ---
 
 ## Pipeline and Test Execution Results
@@ -687,7 +757,9 @@ For each reference requirement:
 
 The final evaluation used **conservative substantive matching**: a generated scenario was counted as covering a reference scenario only when it represented the same underlying condition.
 
-Scenario matching was reviewed manually; the repository does not currently contain an automated semantic comparison script.
+The historical matching for this 21-scenario benchmark was reviewed
+manually. The DBMS workflow now provides `POST /dbms/coverage` for
+automated semantic comparison against expert-labeled DBMS scenarios.
 
 Because the LLM is nondeterministic, reproducing a request may not produce exactly the same output as the stored evaluation artifact.
 

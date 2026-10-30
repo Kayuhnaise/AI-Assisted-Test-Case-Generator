@@ -56,15 +56,17 @@ The proof of concept supports:
 
 - natural-language software requirements;
 - Python source code associated with a requirement;
+- plain-text or Markdown DBMS requirement documents;
 - local LLM-based scenario identification;
 - structured positive, negative, boundary, and edge scenarios when supported by the requirement;
+- DBMS scenarios structured as precondition, behavior under test, and expected result;
 - scenario-linked test-case generation;
 - executable pytest generation;
 - validation of generated structures;
 - selected deterministic safeguards for known generation failures;
 - automatic pytest execution;
 - structured reporting of test execution results; and
-- evaluation against manually defined reference scenarios.
+- evaluation against manually defined reference scenarios, including DBMS scenario coverage.
 
 ### 3.2 Out of Scope
 
@@ -72,8 +74,8 @@ The current proof of concept does not provide:
 
 - production-grade execution sandboxing;
 - guaranteed semantic correctness of generated tests;
+- guaranteed achievement of the 90% DBMS scenario-coverage target;
 - automatic acceptance of generated tests into a production repository;
-- automated semantic comparison between generated and reference scenarios;
 - statistical characterization of model behavior across repeated trials;
 - support for every programming language or test framework;
 - testing of arbitrary external applications; or
@@ -119,6 +121,11 @@ Example:
 def is_valid_username(username: str) -> bool:
     return 3 <= len(username) <= 20
 ```
+
+The DBMS scenario workflow also accepts a plain-text or Markdown
+requirement document without Python source code. Coverage evaluation
+accepts expert-labeled and extracted scenarios, each with a precondition,
+behavior under test, and expected result.
 
 ---
 
@@ -256,6 +263,35 @@ This allows the user to inspect both the AI-generated artifacts and the empirica
 
 ---
 
+## R8 — DBMS Requirement Scenario Extraction
+
+The system shall extract structured test scenarios from plain-text or
+Markdown DBMS requirement documents.
+
+### Acceptance Criteria
+
+- `POST /dbms/scenarios` accepts a requirement document without Python source code.
+- Each extracted scenario contains an ID, category, precondition, behavior under test, and expected result.
+- Scenario content is grounded in the document and does not invent unsupported DBMS behavior.
+
+---
+
+## R9 — DBMS Scenario Coverage Evaluation
+
+The system shall evaluate extracted DBMS scenarios against expert-labeled
+scenarios using the precondition, behavior-under-test, and expected-result
+matching rule.
+
+### Acceptance Criteria
+
+- `POST /dbms/coverage` reports coverage over the expert-labeled scenario set.
+- An expert scenario is covered only when one extracted scenario is judged semantically equivalent on all three required parts.
+- Each expert scenario is evaluated independently; the same extracted scenario may match multiple expert scenarios.
+- The response reports matched and uncovered IDs and whether the score meets the 90% target.
+- The target is considered met at coverage of 90% or higher; the endpoint does not claim that extraction itself guarantees the target.
+
+---
+
 # 8. Non-Functional Requirements
 
 ## NFR1 — Local AI Execution
@@ -383,6 +419,7 @@ The final project evaluation shall include:
 - a recorded baseline;
 - recorded improvement iterations;
 - scenario-coverage analysis;
+- DBMS requirement-document scenario coverage measured against expert labels, with a target of at least 90%;
 - generated-test execution results; and
 - qualitative analysis of important failures.
 
@@ -411,8 +448,10 @@ The final proof of concept has the following constraints:
 4. The model may hallucinate functions or other source interfaces.
 5. Local Ollama inference may occasionally fail.
 6. Test execution is not sandboxed.
-7. Scenario-to-reference comparison is currently performed manually.
-8. Human review remains necessary.
+7. The existing general-purpose Python benchmark is small and was scored manually.
+8. The DBMS coverage evaluator uses an LLM semantic judge; its decisions should be reviewed for high-stakes evaluation.
+9. No DBMS expert-labeled benchmark or measured DBMS coverage score is currently included.
+10. Human review remains necessary.
 
 ---
 
@@ -423,8 +462,7 @@ Potential future improvements include:
 - AST-based validation of generated function calls against the supplied source code;
 - automatic rejection or regeneration of tests containing undefined source references;
 - larger evaluation benchmarks;
-- repeated evaluation trials;
-- automated scenario-to-reference comparison;
+- an expert-labeled DBMS requirement-document benchmark and repeated trials to verify the 90% coverage target;
 - comparison across multiple LLMs;
 - stronger test-execution isolation;
 - additional code-coverage metrics; and

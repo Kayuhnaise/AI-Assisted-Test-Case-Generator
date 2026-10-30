@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import ast
 from typing import List, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class RequirementInput(BaseModel):
@@ -58,6 +60,74 @@ class GeneratedScenarios(BaseModel):
 class ScenarioResponse(BaseModel):
     requirement: str
     scenarios: List[Scenario]
+
+
+class DBMSRequirementInput(BaseModel):
+    requirement_document: str = Field(
+        ...,
+        min_length=1,
+        description="Plain-text or Markdown DBMS requirement document",
+    )
+
+
+class DBMSScenario(BaseModel):
+    id: str = Field(min_length=1)
+    category: Literal["positive", "negative", "boundary", "edge"]
+    precondition: str = Field(min_length=1)
+    behavior_under_test: str = Field(min_length=1)
+    expected_result: str = Field(min_length=1)
+
+
+class GeneratedDBMSScenarios(BaseModel):
+    scenarios: List[DBMSScenario] = Field(min_length=1)
+
+
+class DBMSScenarioResponse(BaseModel):
+    requirement_document: str
+    scenarios: List[DBMSScenario]
+
+
+class DBMSCoverageRequest(BaseModel):
+    expert_scenarios: List[DBMSScenario] = Field(min_length=1)
+    extracted_scenarios: List[DBMSScenario]
+
+    @model_validator(mode="after")
+    def scenario_ids_must_be_unique(self) -> DBMSCoverageRequest:
+        expert_ids = [scenario.id for scenario in self.expert_scenarios]
+        extracted_ids = [scenario.id for scenario in self.extracted_scenarios]
+        if len(set(expert_ids)) != len(expert_ids):
+            raise ValueError("Expert scenario IDs must be unique")
+        if len(set(extracted_ids)) != len(extracted_ids):
+            raise ValueError("Extracted scenario IDs must be unique")
+        return self
+
+
+class ScenarioPairJudgment(BaseModel):
+    expert_scenario_id: str
+    extracted_scenario_id: str
+    precondition_matches: bool
+    behavior_matches: bool
+    expected_result_matches: bool
+
+
+class ScenarioPairJudgments(BaseModel):
+    judgments: List[ScenarioPairJudgment]
+
+
+class DBMSCoverageMatch(BaseModel):
+    expert_scenario_id: str
+    extracted_scenario_id: str
+
+
+class DBMSCoverageResponse(BaseModel):
+    expert_scenario_count: int
+    extracted_scenario_count: int
+    covered_scenario_count: int
+    coverage_percentage: float
+    target_percentage: float
+    target_met: bool
+    matches: List[DBMSCoverageMatch]
+    uncovered_expert_scenario_ids: List[str]
 
 
 class TestCase(BaseModel):
