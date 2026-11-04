@@ -48,11 +48,13 @@ def test_dbms_sql_generation():
     )
 
     mock_response = SimpleNamespace(
-        message=SimpleNamespace(
-            content=GeneratedDBMSSQLTests(
+        content=[SimpleNamespace(
+            type="text",
+            text=GeneratedDBMSSQLTests(
                 test_cases=[generated_case]
-            ).model_dump_json()
-        )
+            ).model_dump_json(),
+        )],
+        stop_reason="end_turn",
     )
 
     request = {
@@ -74,10 +76,8 @@ def test_dbms_sql_generation():
         ],
     }
 
-    with patch(
-        "app.dbms_sql_generator.ollama.chat",
-        return_value=mock_response,
-    ):
+    with patch("app.dbms_sql_generator.anthropic.Anthropic") as mock_anthropic:
+        mock_anthropic.return_value.messages.create.return_value = mock_response
         response = client.post(
             "/dbms/generate",
             json=request,

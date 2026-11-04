@@ -1,7 +1,11 @@
 
-import ollama
+import os
+import json
 
-from app.generator import MODEL_NAME
+import anthropic
+
+from pydantic import ValidationError
+
 from app.models import (
     DBMSScenario,
     DBMSSQLTestCase,
@@ -13,54 +17,15 @@ from app.prompts import (
 )
 
 
-def generate_dbms_sql_tests(
-    requirement_document: str,
-    scenarios: list[DBMSScenario],
-) -> list[DBMSSQLTestCase]:
-    """
-    Generate scenario-traceable SQL test cases
-    from structured DBMS scenarios.
-    """
+MAX_GENERATION_ATTEMPTS = 3
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-fable-5-1")
 
-    if not scenarios:
-        raise ValueError(
-            "At least one DBMS scenario is required"
-        )
 
-    scenario_by_id = {
-        scenario.id: scenario
-        for scenario in scenarios
-    }
-
-    if len(scenario_by_id) != len(scenarios):
-        raise ValueError(
-            "DBMS scenario IDs must be unique"
-        )
-
-    response = ollama.chat(
-        model=MODEL_NAME,
-        messages=[
-            {
-                "role": "system",
-                "content": DBMS_SQL_GENERATION_SYSTEM_PROMPT,
-            },
-            {
-                "role": "user",
-                "content": build_dbms_sql_generation_prompt(
-                    requirement_document,
-                    scenarios,
-                ),
-            },
-        ],
-        format=GeneratedDBMSSQLTests.model_json_schema(),
-        options={"temperature": 0.2},
-    )
-
-    generated = GeneratedDBMSSQLTests.model_validate_json(
-        response.message.content
-    )
-
-    test_cases = generated.test_cases
+def _validate_generated_tests(
+    test_cases: list[DBMSSQLTestCase],
+    scenario_by_id: dict[str, DBMSScenario],
+) -> None:
+    """Validate generated SQL test structure and traceability."""
 
     test_ids = [case.id for case in test_cases]
     scenario_ids = [case.scenario_id for case in test_cases]
@@ -92,9 +57,7 @@ def generate_dbms_sql_tests(
             raise ValueError(
                 f"Unsupported SQL dialect: {case.sql_dialect}"
             )
-        
-        
-        # Require a specific expected SQLite error.
+
         if (
             case.expected_outcome.outcome_type == "error"
             and not case.expected_outcome.expected_error
@@ -104,16 +67,12 @@ def generate_dbms_sql_tests(
                 "the expected SQL error"
             )
 
-        # Reject legacy verification queries that
-        # cannot establish expected database state.
         if case.verification_sql:
             raise ValueError(
                 f"SQL test {case.id} uses verification_sql "
                 "without expected results"
             )
 
-        # Require database-state assertions for
-        # mutation and expected-error scenarios.
         sql_operation = case.test_sql.lstrip().upper()
 
         requires_state_verification = (
@@ -133,5 +92,120 @@ def generate_dbms_sql_tests(
                 "verification_assertions"
             )
 
+        if (
+            sql_operation.startswith(
+                ("INSERT", "UPDATE", "DELETE", "REPLACE")
+            )
+            and case.expected_outcome.outcome_type == "scalar"
+        ):
+            raise ValueError(
+                f"SQL test {case.id} uses scalar outcome "
+                "for a state-changing operation"
+            )
 
-    return test_cases
+
+def generate_dbms_sql_tests(
+    requirement_document: str,
+    scenarios: list[DBMSScenario],
+) -> list[DBMSSQLTestCase]:
+    """
+    Generate scenario-traceable SQL tests, retrying
+    invalid model output up to two additional times.
+    """
+
+    if not scenarios:
+        raise ValueError(
+            "At least one DBMS scenario is required"
+        )
+
+    scenario_by_id = {
+        scenario.id: scenario
+        for scenario in scenarios
+    }
+
+    if len(scenario_by_id) != len(scenarios):
+        raise ValueError(
+            "DBMS scenario IDs must be unique"
+        )
+
+    messages = [
+        {
+            "role": "user",
+            "content": build_dbms_sql_generation_prompt(
+                requirement_document,
+                scenarios,
+            ) + "\n\nReturn only JSON matching this schema:\n"
+            + json.dumps(GeneratedDBMSSQLTests.model_json_schema()),
+        },
+    ]
+
+    client = anthropic.Anthropic()
+    last_error = None
+
+    for attempt in range(MAX_GENERATION_ATTEMPTS):
+        response = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=8192,
+            system=DBMS_SQL_GENERATION_SYSTEM_PROMPT,
+            messages=messages,
+        )
+
+        content = "".join(
+            block.text for block in response.content
+            if block.type == "text"
+        ).strip()
+
+        if response.stop_reason == "max_tokens":
+            raise ValueError("Claude response was truncated; increase max_tokens")
+
+        try:
+            generated = GeneratedDBMSSQLTests.model_validate_json(
+                content
+            )
+
+            test_cases = generated.test_cases
+
+            _validate_generated_tests(
+                test_cases,
+                scenario_by_id,
+            )
+
+            return test_cases
+
+        except (ValidationError, ValueError) as exc:
+            last_error = exc
+
+            if attempt == MAX_GENERATION_ATTEMPTS - 1:
+                break
+
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": content,
+                }
+            )
+
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Your previous SQL test generation "
+                        "response failed validation.\n\n"
+                        f"Validation error:\n{exc}\n\n"
+                        "Correct the response while preserving "
+                        "the original requirements, scenario IDs, "
+                        "categories, and intended database behavior. "
+                        "Return the complete corrected JSON object "
+                        "with exactly one test case per scenario. "
+                        "Use verification_assertions with correctly "
+                        "typed expected results, and keep "
+                        "verification_sql empty."
+                    ),
+                }
+            )
+
+    raise ValueError(
+        "SQL test generation failed after "
+        f"{MAX_GENERATION_ATTEMPTS} attempts. "
+        f"Last validation error: {last_error}"
+    ) from last_error
