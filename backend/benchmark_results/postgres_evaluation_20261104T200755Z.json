@@ -1,0 +1,325 @@
+{
+  "model": "claude-fable-5-1",
+  "summary": {
+    "total": 12,
+    "generated": 12,
+    "validated": 12,
+    "oracle_matched": 10,
+    "independently_valid": 12,
+    "independent_validity_percentage": 100.0
+  },
+  "results": [
+    {
+      "scenario_id": "R2-001",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected": 2,
+            "actual": 2,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE email = 'bob@example.com'",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-002",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT balance FROM accounts WHERE id = 1",
+            "expected": 150,
+            "actual": 150,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-003",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE id = 1",
+            "expected": 0,
+            "actual": 0,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE id = 2",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-004",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE email = 'alice@example.com'",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-005",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected": 0,
+            "actual": 0,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-006",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": false,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM orders",
+            "expected": 0,
+            "actual": 0,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-007",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM accounts WHERE balance = 0",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-008",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM products WHERE quantity = 100",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-009",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM products",
+            "expected": 0,
+            "actual": 0,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-010",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          },
+          {
+            "query": "SELECT email FROM users LIMIT 1",
+            "expected": "Alice@example.com",
+            "actual": "Alice@example.com",
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-011",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": true,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1",
+            "expected": 0,
+            "actual": 0,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 2",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 1",
+            "expected": 0,
+            "actual": 0,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 2",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    },
+    {
+      "scenario_id": "R2-012",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "validation_errors": [],
+      "oracle_match": false,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 1",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      }
+    }
+  ]
+}

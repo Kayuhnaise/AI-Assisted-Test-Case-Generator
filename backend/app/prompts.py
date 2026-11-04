@@ -390,10 +390,37 @@ SQL OUTCOME AND TYPE RULES:
 """
 
 
+
+def build_dbms_sql_system_prompt(dialect: str = "sqlite") -> str:
+    """Preserve the proven SQLite prompt; adapt it for PostgreSQL."""
+    if dialect == "sqlite":
+        return DBMS_SQL_GENERATION_SYSTEM_PROMPT
+    if dialect != "postgresql":
+        raise ValueError(f"Unsupported SQL dialect: {dialect}")
+
+    prompt = DBMS_SQL_GENERATION_SYSTEM_PROMPT
+    prompt = prompt.replace("SQLite", "PostgreSQL").replace("sqlite", "postgresql")
+    prompt = prompt.replace('"UNIQUE constraint failed"', '"duplicate key value"')
+    prompt = prompt.replace('"NOT NULL constraint failed"', '"null value"')
+    prompt = prompt.replace('"FOREIGN KEY constraint failed"', '"foreign key constraint"')
+    prompt = prompt.replace('"REPLACE"', '"INSERT"')
+    prompt += """
+PostgreSQL-specific rules:
+- Use PostgreSQL 17 syntax and standard PostgreSQL constraint error substrings.
+- Do not use SQLite-only PRAGMA, INSERT OR REPLACE, or AUTOINCREMENT.
+- Do not create extensions, roles, databases, schemas, or use COPY/PROGRAM.
+- Use only ordinary test tables and deterministic SQL statements.
+"""
+    return prompt
+
+
 def build_dbms_sql_generation_prompt(
     requirement_document: str,
     scenarios: list,
+    dialect: str = "sqlite",
 ) -> str:
+    if dialect not in ("sqlite", "postgresql"):
+        raise ValueError(f"Unsupported SQL dialect: {dialect}")
     import json
 
     scenario_data = [
@@ -408,8 +435,8 @@ Original DBMS requirement document:
 Structured testing scenarios:
 {json.dumps(scenario_data, indent=2)}
 
-Generate exactly one executable SQLite test case
-for each supplied scenario.
+Generate exactly one executable {dialect} test case
+for each supplied scenario. Set sql_dialect to {dialect}.
 
 Preserve the original preconditions, behavior under test,
 and expected result.

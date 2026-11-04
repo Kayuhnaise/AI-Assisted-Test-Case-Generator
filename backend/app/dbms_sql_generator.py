@@ -12,7 +12,7 @@ from app.models import (
     GeneratedDBMSSQLTests,
 )
 from app.prompts import (
-    DBMS_SQL_GENERATION_SYSTEM_PROMPT,
+    build_dbms_sql_system_prompt,
     build_dbms_sql_generation_prompt,
 )
 
@@ -24,6 +24,7 @@ CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-fable-5-1")
 def _validate_generated_tests(
     test_cases: list[DBMSSQLTestCase],
     scenario_by_id: dict[str, DBMSScenario],
+    dialect: str = "sqlite",
 ) -> None:
     """Validate generated SQL test structure and traceability."""
 
@@ -53,7 +54,7 @@ def _validate_generated_tests(
                 f"Category mismatch for {case.scenario_id}"
             )
 
-        if case.sql_dialect != "sqlite":
+        if case.sql_dialect != dialect:
             raise ValueError(
                 f"Unsupported SQL dialect: {case.sql_dialect}"
             )
@@ -107,11 +108,15 @@ def _validate_generated_tests(
 def generate_dbms_sql_tests(
     requirement_document: str,
     scenarios: list[DBMSScenario],
+    dialect: str = "sqlite",
 ) -> list[DBMSSQLTestCase]:
     """
     Generate scenario-traceable SQL tests, retrying
     invalid model output up to two additional times.
     """
+
+    if dialect not in ("sqlite", "postgresql"):
+        raise ValueError(f"Unsupported SQL dialect: {dialect}")
 
     if not scenarios:
         raise ValueError(
@@ -131,10 +136,11 @@ def generate_dbms_sql_tests(
     messages = [
         {
             "role": "user",
-            "content": build_dbms_sql_generation_prompt(
-                requirement_document,
-                scenarios,
-            ) + "\n\nReturn only JSON matching this schema:\n"
+            "content": (build_dbms_sql_generation_prompt(
+                requirement_document, scenarios
+            ) if dialect == "sqlite" else build_dbms_sql_generation_prompt(
+                requirement_document, scenarios, dialect
+            )) + "\n\nReturn only JSON matching this schema:\n"
             + json.dumps(GeneratedDBMSSQLTests.model_json_schema()),
         },
     ]
@@ -146,7 +152,7 @@ def generate_dbms_sql_tests(
         response = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=8192,
-            system=DBMS_SQL_GENERATION_SYSTEM_PROMPT,
+            system=build_dbms_sql_system_prompt(dialect),
             messages=messages,
         )
 
@@ -168,6 +174,7 @@ def generate_dbms_sql_tests(
             _validate_generated_tests(
                 test_cases,
                 scenario_by_id,
+                dialect,
             )
 
             return test_cases
