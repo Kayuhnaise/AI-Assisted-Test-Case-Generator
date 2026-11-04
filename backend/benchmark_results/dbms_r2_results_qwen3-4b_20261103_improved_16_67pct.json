@@ -1,0 +1,368 @@
+{
+  "benchmark_id": "DBMS-R2-INITIAL-001",
+  "timestamp_utc": "2026-11-03T21:18:09.433703+00:00",
+  "model": "qwen3:4b",
+  "summary": {
+    "total_scenarios": 12,
+    "generation_successful": 4,
+    "validation_passed": 2,
+    "oracle_matched": 4,
+    "independent_oracle_passed": 2,
+    "independently_valid": 2,
+    "independent_validity_percentage": 16.67,
+    "category_counts": {
+      "positive": 3,
+      "negative": 3,
+      "boundary": 3,
+      "edge": 3
+    }
+  },
+  "results": [
+    {
+      "scenario_id": "R2-001",
+      "category": "positive",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "oracle_match": true,
+      "error": null,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "setup_successful": true,
+        "execution_successful": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected": 2,
+            "actual": 2,
+            "passed": true
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE email = 'bob@example.com'",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      },
+      "validation_errors": [],
+      "actual_outcome": "SQL executed; checking resulting state",
+      "generated_test": {
+        "id": "test_R2-001",
+        "scenario_id": "R2-001",
+        "title": "Insert second user with distinct email",
+        "category": "positive",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "The users table contains one user with email alice@example.com."
+        ],
+        "constraints": [
+          "users.email: NOT NULL, UNIQUE"
+        ],
+        "setup_sql": [
+          "CREATE TABLE IF NOT EXISTS users (email TEXT NOT NULL UNIQUE);",
+          "INSERT INTO users (email) VALUES ('alice@example.com');"
+        ],
+        "test_sql": "INSERT INTO users (email) VALUES ('bob@example.com');",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": 2,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The insertion succeeds and both users exist."
+        },
+        "cleanup_sql": []
+      }
+    },
+    {
+      "scenario_id": "R2-002",
+      "category": "positive",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test T-R2-002 requires verification_assertions",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-003",
+      "category": "positive",
+      "generation_successful": true,
+      "validation_status": "error",
+      "oracle_match": true,
+      "error": null,
+      "independent_oracle_passed": false,
+      "independent_oracle_result": {
+        "passed": false,
+        "setup_successful": false,
+        "execution_successful": false,
+        "operation_matched": false,
+        "assertions_passed": false,
+        "assertion_results": [],
+        "errors": [
+          "SQLite setup or transaction error: no such table: orders"
+        ]
+      },
+      "validation_errors": [
+        "Database setup or transaction error: no such table: orders"
+      ],
+      "actual_outcome": "",
+      "generated_test": {
+        "id": "T1",
+        "scenario_id": "R2-003",
+        "title": "Test that deleting one order with ID 1 from two orders leaves one order",
+        "category": "positive",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "CREATE TABLE orders (id INTEGER PRIMARY KEY, name TEXT)"
+        ],
+        "constraints": [
+          "id is the primary key"
+        ],
+        "setup_sql": [
+          "INSERT INTO orders (id, name) VALUES (1, 'order1')",
+          "INSERT INTO orders (id, name) VALUES (2, 'order2')"
+        ],
+        "test_sql": "DELETE FROM orders WHERE id = 1",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM orders",
+            "expected_scalar": 1,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "1 row remaining in orders table"
+        },
+        "cleanup_sql": [
+          "DROP TABLE orders"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-004",
+      "category": "negative",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test R2-004_test requires verification_assertions",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-005",
+      "category": "negative",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test R2-005_test is missing the expected SQL error",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-006",
+      "category": "negative",
+      "generation_successful": true,
+      "validation_status": "failed",
+      "oracle_match": true,
+      "error": null,
+      "independent_oracle_passed": false,
+      "independent_oracle_result": {
+        "passed": false,
+        "setup_successful": true,
+        "execution_successful": true,
+        "operation_matched": false,
+        "assertions_passed": false,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM orders",
+            "expected": 0,
+            "actual": 1,
+            "passed": false
+          }
+        ],
+        "errors": [
+          "Expected SQL error 'FOREIGN KEY constraint failed', got None",
+          "Oracle assertion failed: SELECT COUNT(*) FROM orders"
+        ]
+      },
+      "validation_errors": [
+        "Expected SQL error did not occur",
+        "Verification failed for SELECT COUNT(*) FROM orders: expected 0, got 1"
+      ],
+      "actual_outcome": "SQL succeeded, but an error was expected",
+      "generated_test": {
+        "id": "R2-006-test",
+        "scenario_id": "R2-006",
+        "title": "Insert order referencing non-existent customer",
+        "category": "negative",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "Customers table exists with at least one record",
+          "Orders table exists with no records",
+          "Customer 999 does not exist in customers table",
+          "Foreign key enforcement is enabled"
+        ],
+        "constraints": [
+          "customers(customer_id) PRIMARY KEY",
+          "orders(customer_id) FOREIGN KEY REFERENCES customers(customer_id)"
+        ],
+        "setup_sql": [
+          "CREATE TABLE customers (customer_id INTEGER PRIMARY KEY)",
+          "CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER)",
+          "INSERT INTO customers (customer_id) VALUES (1)",
+          "PRAGMA foreign_keys = ON"
+        ],
+        "test_sql": "INSERT INTO orders (customer_id) VALUES (999)",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM orders",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM customers",
+            "expected_scalar": 1,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "FOREIGN KEY constraint failed",
+          "assertion_description": "Foreign key constraint violation"
+        },
+        "cleanup_sql": [
+          "DROP TABLE orders",
+          "DROP TABLE customers"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-007",
+      "category": "boundary",
+      "generation_successful": true,
+      "validation_status": "passed",
+      "oracle_match": true,
+      "error": null,
+      "independent_oracle_passed": true,
+      "independent_oracle_result": {
+        "passed": true,
+        "setup_successful": true,
+        "execution_successful": true,
+        "operation_matched": true,
+        "assertions_passed": true,
+        "assertion_results": [
+          {
+            "query": "SELECT COUNT(*) FROM accounts WHERE balance = 0",
+            "expected": 1,
+            "actual": 1,
+            "passed": true
+          }
+        ],
+        "errors": []
+      },
+      "validation_errors": [],
+      "actual_outcome": "SQL executed; checking resulting state",
+      "generated_test": {
+        "id": "test_R2-007",
+        "scenario_id": "R2-007",
+        "title": "Insert account with balance 0 should succeed",
+        "category": "boundary",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "An accounts table exists with a CHECK constraint requiring balance >= 0"
+        ],
+        "constraints": [
+          "accounts table with balance integer and CHECK (balance >= 0)"
+        ],
+        "setup_sql": [
+          "CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY, balance INTEGER CHECK (balance >= 0))"
+        ],
+        "test_sql": "INSERT INTO accounts (balance) VALUES (0);",
+        "verification_assertions": [
+          {
+            "query": "SELECT balance FROM accounts LIMIT 1",
+            "expected_scalar": 0,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The inserted account has a balance of 0"
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS accounts"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-008",
+      "category": "boundary",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test R2-008 requires verification_assertions",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-009",
+      "category": "boundary",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test R2-009 is missing the expected SQL error",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-010",
+      "category": "edge",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test 1 requires verification_assertions",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-011",
+      "category": "edge",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test T1 requires verification_assertions",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    },
+    {
+      "scenario_id": "R2-012",
+      "category": "edge",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test generation failed after 3 attempts. Last validation error: SQL test R2-012_test is missing the expected SQL error",
+      "independent_oracle_passed": false,
+      "independent_oracle_result": null
+    }
+  ]
+}
