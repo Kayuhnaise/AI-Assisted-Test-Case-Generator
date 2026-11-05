@@ -79,12 +79,202 @@ class DBMSScenario(BaseModel):
 
 
 class GeneratedDBMSScenarios(BaseModel):
-    scenarios: List[DBMSScenario] = Field(min_length=1)
+    scenarios: List[DBMSScenario]
+
+
+class GeneratedDBMSSQLScenarios(BaseModel):
+    scenarios: List[DBMSScenario]
 
 
 class DBMSScenarioResponse(BaseModel):
     requirement_document: str
     scenarios: List[DBMSScenario]
+
+
+class DBMSSQLTestRequest(BaseModel):
+    scenarios: List[DBMSScenario] = Field(min_length=1)
+    postgres_version: str = Field(default="17", min_length=1)
+
+    @model_validator(mode="after")
+    def scenario_ids_must_be_unique(self) -> DBMSSQLTestRequest:
+        scenario_ids = [scenario.id for scenario in self.scenarios]
+        if len(set(scenario_ids)) != len(scenario_ids):
+            raise ValueError("Scenario IDs must be unique")
+        return self
+
+
+class DBMSSQLTestPackage(BaseModel):
+    test_id: str = Field(min_length=1)
+    scenario_id: str = Field(min_length=1)
+    setup_sql: str
+    data_sql: str
+    test_sql: str = Field(min_length=1)
+    expected_outcome: Literal["success", "error"]
+    expected_sqlstate: str | None = Field(
+        default=None,
+        pattern=r"^[0-9A-Z]{5}$",
+    )
+    cleanup_sql: str
+
+    @model_validator(mode="after")
+    def sqlstate_must_match_outcome(self) -> DBMSSQLTestPackage:
+        if self.expected_outcome == "error" and self.expected_sqlstate is None:
+            raise ValueError("Error outcomes require an expected SQLSTATE")
+        if self.expected_outcome == "success" and self.expected_sqlstate is not None:
+            raise ValueError("Successful outcomes must not include a SQLSTATE")
+        return self
+
+
+class GeneratedDBMSSQLTests(BaseModel):
+    tests: List[DBMSSQLTestPackage] = Field(min_length=1)
+
+
+class DBMSSQLTestResponse(BaseModel):
+    postgres_version: str
+    tests: List[DBMSSQLTestPackage]
+
+
+class DBMSSQLValidationRequest(BaseModel):
+    tests: List[DBMSSQLTestPackage] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def test_ids_must_be_unique(self) -> DBMSSQLValidationRequest:
+        test_ids = [test.test_id for test in self.tests]
+        if len(set(test_ids)) != len(test_ids):
+            raise ValueError("SQL test IDs must be unique")
+        return self
+
+
+class DBMSSQLValidationResult(BaseModel):
+    test_id: str
+    scenario_id: str
+    valid: bool
+    errors: List[str]
+
+
+class DBMSSQLValidationResponse(BaseModel):
+    valid: bool
+    results: List[DBMSSQLValidationResult]
+
+
+class DBMSSQLExecutionRequest(BaseModel):
+    tests: List[DBMSSQLTestPackage] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def test_ids_must_be_unique(self) -> DBMSSQLExecutionRequest:
+        test_ids = [test.test_id for test in self.tests]
+        if len(set(test_ids)) != len(test_ids):
+            raise ValueError("SQL test IDs must be unique")
+        return self
+
+
+class DBMSSQLExecutionResult(BaseModel):
+    test_id: str
+    scenario_id: str
+    status: Literal["passed", "failed", "error"]
+    expected_sqlstate: str | None
+    actual_sqlstate: str | None
+    duration_ms: float
+    detail: str | None = None
+
+
+class DBMSSQLExecutionResponse(BaseModel):
+    results: List[DBMSSQLExecutionResult]
+
+
+class DBMSCoverageMetric(BaseModel):
+    covered: int
+    total: int
+    percentage: float
+
+
+class DBMSCoverageModule(BaseModel):
+    name: Literal[
+        "parser",
+        "analysis",
+        "optimizer",
+        "executor",
+        "storage",
+        "transactions",
+    ]
+    line_coverage: DBMSCoverageMetric
+    branch_coverage: DBMSCoverageMetric
+    function_coverage: DBMSCoverageMetric
+    uncovered_files: List[str]
+    feature_hints: List[
+        Literal[
+            "SQL parsing and syntax",
+            "Name resolution and semantic analysis",
+            "Query planning and optimization",
+            "Query execution",
+            "Table, index, and constraint operations",
+            "Transactions and statement execution",
+        ]
+    ]
+
+
+class DBMSFeatureHint(BaseModel):
+    feature: Literal[
+        "SQL parsing and syntax",
+        "Name resolution and semantic analysis",
+        "Query planning and optimization",
+        "Query execution",
+        "Table, index, and constraint operations",
+        "Transactions and statement execution",
+    ]
+    module: Literal[
+        "parser",
+        "analysis",
+        "optimizer",
+        "executor",
+        "storage",
+        "transactions",
+    ]
+    uncovered_files: List[str]
+
+
+class DBMSCoverageReport(BaseModel):
+    files_analyzed: int
+    line_coverage: DBMSCoverageMetric
+    branch_coverage: DBMSCoverageMetric
+    function_coverage: DBMSCoverageMetric
+    modules: List[DBMSCoverageModule]
+    feature_hints: List[DBMSFeatureHint]
+
+
+class DBMSCoverageAnalysisRequest(BaseModel):
+    lcov_report: str = Field(min_length=1)
+
+
+class DBMSCoverageGenerationRequest(BaseModel):
+    requirement_document: str = Field(min_length=1)
+    coverage_report: DBMSCoverageReport
+
+
+class DBMSCoverageGenerationResponse(BaseModel):
+    targeted_features: List[str]
+    scenarios: List[DBMSScenario]
+
+
+class DBMSRefinementRequest(BaseModel):
+    scenario: DBMSScenario
+    failed_test: DBMSSQLTestPackage
+    error_message: str = Field(min_length=1)
+    actual_sqlstate: str | None = Field(
+        default=None,
+        pattern=r"^[0-9A-Z]{5}$",
+    )
+
+    @model_validator(mode="after")
+    def failed_test_must_match_scenario(self) -> DBMSRefinementRequest:
+        if self.failed_test.scenario_id != self.scenario.id:
+            raise ValueError("The failed test must match the supplied scenario")
+        return self
+
+
+class DBMSRefinementResponse(BaseModel):
+    repaired_test: DBMSSQLTestPackage
+    oracle_preserved: bool
 
 
 class DBMSCoverageRequest(BaseModel):

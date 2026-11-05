@@ -12,7 +12,7 @@
 
 ## Project Overview
 
-The **Automated Test Case Generation for Database Systems via LLM-Driven Requirement Parsing** is a proof-of-concept AI4SE tool. Its original workflow converts natural-language requirements and Python source code into structured scenarios and executable pytest tests. A DBMS-focused workflow also extracts scenarios from plain-text or Markdown database requirement documents and measures their coverage against expert-labeled scenarios.
+The **Automated Test Case Generation for Database Systems via LLM-Driven Requirement Parsing** is a proof-of-concept AI4SE tool. Its original workflow converts natural-language requirements and Python source code into structured scenarios and executable pytest tests. A DBMS-focused workflow also extracts scenarios from plain-text or Markdown database requirement documents, measures requirement coverage, generates SQL test packages, validates them, optionally runs them against an isolated PostgreSQL test database, and uses LCOV feedback to propose additional scenarios.
 
 The system uses a local Large Language Model (LLM) to:
 
@@ -23,6 +23,7 @@ The system uses a local Large Language Model (LLM) to:
 5. Validate generated output.
 6. Execute the generated tests automatically.
 7. Return the identified scenarios, generated tests, pytest code, and execution results.
+8. For DBMS scenarios, generate and validate SQL test packages, compare expected SQLSTATEs with actual execution results, and analyze PostgreSQL source-coverage reports.
 
 The project investigates both the usefulness and limitations of LLM-assisted software test generation. In particular, the evaluation distinguishes between **scenario coverage, pipeline reliability, test executability, and semantic correctness** rather than assuming that a passing generated test is necessarily a good test.
 
@@ -254,6 +255,103 @@ Provide both scenario sets in the request:
 }
 ```
 
+### `POST /dbms/sql-tests/generate`
+
+Accepts structured DBMS scenarios and generates one PostgreSQL test package
+per scenario. The response preserves `scenario_id` traceability and includes
+`setup_sql`, `data_sql`, `test_sql`, `cleanup_sql`, the expected outcome, and
+an expected SQLSTATE for error outcomes.
+
+```json
+{
+  "postgres_version": "17",
+  "scenarios": [
+    {
+      "id": "DB-002",
+      "category": "negative",
+      "precondition": "The users table contains alice@example.com.",
+      "behavior_under_test": "Insert another row with the same email.",
+      "expected_result": "The insert fails with SQLSTATE 23505."
+    }
+  ]
+}
+```
+
+This endpoint only generates and structurally validates package data. It does
+not execute generated statements. Use `/dbms/sql-tests/validate` before
+execution.
+
+### `POST /dbms/sql-tests/validate`
+
+Accepts a `tests` array of SQL test packages and parses each SQL field using
+SQLGlot's PostgreSQL dialect. The response reports validity and validation
+errors per test. It rejects statements outside its DDL/DML/query allowlist,
+schema-qualified table/function references, and functions outside a safe
+allowlist. This is a static safety check, not a substitute for execution on
+the target PostgreSQL version.
+
+### `POST /dbms/sql-tests/execute`
+
+Executes only packages that pass SQL validation. Set
+`DBMS_TEST_DATABASE_URL` to a **dedicated, non-superuser test database**
+before starting the API. Each package runs in its own generated schema and
+transaction, uses PostgreSQL statement and lock timeouts, compares the actual
+SQLSTATE with the expected SQLSTATE, then rolls back the transaction.
+
+Do not point this setting at a production or shared database. The allowlist
+reduces risk but is not a security sandbox; use a disposable, network-isolated
+PostgreSQL instance with a least-privilege role. Without the setting, this
+endpoint returns HTTP 503 rather than claiming that a test was executed.
+
+### `POST /dbms/coverage/analyze`
+
+Accepts an LCOV report as `{"lcov_report": "..."}` and returns line, branch,
+and function coverage totals, module summaries, and feature hints for
+uncovered PostgreSQL source areas. Module classification uses source-path
+names as heuristics; inspect the reported files when interpreting a hint.
+
+Build PostgreSQL with coverage instrumentation (`./configure
+--enable-coverage`), run a workload against that build, then collect LCOV
+data from the build directory (with branch coverage enabled), for example:
+
+```bash
+lcov --capture --directory /path/to/postgres-build \
+  --output-file coverage.info --rc branch_coverage=1
+```
+
+Paste the contents of `coverage.info` into `/dbms/coverage/analyze`.
+
+### `POST /dbms/coverage/generate`
+
+Accepts the original `requirement_document` and a `coverage_report` returned
+by `/dbms/coverage/analyze`. It asks the local model for additional,
+requirement-supported exploratory scenarios directed at the uncovered
+feature hints. Pass the returned scenarios to `/dbms/sql-tests/generate`,
+then validate and execute them and re-measure coverage. The endpoint does not
+claim a coverage improvement until a new instrumented run confirms it.
+
+To analyze a local LCOV report and request scenarios from the terminal, run
+this from the repository root (replace the requirement path with your
+DBMS-requirements document):
+
+```bash
+.venv/bin/python evaluation/run_dbms_coverage_generation.py \
+  --requirements README_DB.md
+```
+
+The script defaults to `postgres-coverage.info` and
+`http://127.0.0.1:8002`. Override them with `--lcov`, `--base-url`, or the
+`DBMS_API_BASE_URL` environment variable. If an API request fails, it prints
+the HTTP status and response body.
+
+### `POST /dbms/refine`
+
+Accepts a `scenario`, its `failed_test`, an error message, and optional actual
+SQLSTATE. It asks the model to repair only `test_sql`; test identity, setup,
+data, cleanup, and the expected outcome/SQLSTATE must remain unchanged.
+Repaired SQL is validated before it is returned. A changed oracle or unsafe
+or invalid SQL is rejected.
+
 Supported categories include:
 
 - positive;
@@ -317,7 +415,9 @@ The project requires:
 
 No external hosted LLM API or API key is required.
 
-No project-specific environment variables are currently required.
+`DBMS_TEST_DATABASE_URL` is optional for API startup and required only for
+`POST /dbms/sql-tests/execute`. It must point to a dedicated, non-superuser
+PostgreSQL test database; see the execution endpoint safety notes above.
 
 ---
 
@@ -360,7 +460,11 @@ python -m venv .venv
 
 ```powershell
 pip install -r requirements.txt
+pip install -r requirements-dbms.txt
 ```
+
+`requirements-dbms.txt` contains the PostgreSQL driver and SQLGlot required
+for Milestone 2 validation and execution.
 
 ---
 

@@ -127,26 +127,26 @@ def test_coverage_target_is_met_at_ninety_percent():
     extracted_scenarios = [
         _scenario(f"extracted_{index}") for index in range(9)
     ]
-    judgments = ScenarioPairJudgments(
-        judgments=[
-            _judgment(
-                expert.id,
-                extracted.id,
-                precondition=expert.id.removeprefix("expert_")
-                == extracted.id.removeprefix("extracted_"),
-                behavior=expert.id.removeprefix("expert_")
-                == extracted.id.removeprefix("extracted_"),
-                expected_result=expert.id.removeprefix("expert_")
-                == extracted.id.removeprefix("extracted_"),
-            )
-            for expert in expert_scenarios
-            for extracted in extracted_scenarios
-        ]
-    )
-    with patch(
-        "app.dbms_scenarios.ollama.chat",
-        return_value=_ollama_response(judgments.model_dump_json()),
-    ):
+    # The judge is called once per expert scenario. Expert i matches
+    # extracted i; expert 9 has no equivalent extracted scenario.
+    responses = [
+        _ollama_response(
+            ScenarioPairJudgments(
+                judgments=[
+                    _judgment(
+                        expert.id,
+                        extracted.id,
+                        precondition=i == j,
+                        behavior=i == j,
+                        expected_result=i == j,
+                    )
+                    for j, extracted in enumerate(extracted_scenarios)
+                ]
+            ).model_dump_json()
+        )
+        for i, expert in enumerate(expert_scenarios)
+    ]
+    with patch("app.dbms_scenarios.ollama.chat", side_effect=responses):
         result = evaluate_dbms_scenario_coverage(
             expert_scenarios, extracted_scenarios
         )
@@ -158,16 +158,15 @@ def test_coverage_target_is_met_at_ninety_percent():
 
 
 def test_coverage_can_use_an_extracted_scenario_for_each_expert_match():
-    judgments = ScenarioPairJudgments(
-        judgments=[
-            _judgment("expert_1", "extracted_1"),
-            _judgment("expert_2", "extracted_1"),
-        ]
-    )
-    with patch(
-        "app.dbms_scenarios.ollama.chat",
-        return_value=_ollama_response(judgments.model_dump_json()),
-    ):
+    responses = [
+        _ollama_response(
+            ScenarioPairJudgments(
+                judgments=[_judgment(expert_id, "extracted_1")]
+            ).model_dump_json()
+        )
+        for expert_id in ("expert_1", "expert_2")
+    ]
+    with patch("app.dbms_scenarios.ollama.chat", side_effect=responses):
         result = evaluate_dbms_scenario_coverage(
             [_scenario("expert_1"), _scenario("expert_2")],
             [_scenario("extracted_1")],
@@ -196,9 +195,81 @@ def test_coverage_rejects_an_incomplete_judgment_matrix():
     with patch(
         "app.dbms_scenarios.ollama.chat",
         return_value=_ollama_response(judgments.model_dump_json()),
-    ):
+    ) as chat:
         with pytest.raises(ValueError, match="judge every"):
             evaluate_dbms_scenario_coverage(
-                [_scenario("expert_1"), _scenario("expert_2")],
-                [_scenario("extracted_1")],
+                [_scenario("expert_1")],
+                [_scenario("extracted_1"), _scenario("extracted_2")],
             )
+
+    assert chat.call_count == 2  # one bounded retry, then fail loudly
+
+
+def test_judge_is_limited_to_the_most_similar_candidates():
+    expert = _scenario("expert_1")
+    expert.behavior_under_test = "Rollback an uncommitted transaction."
+    extracted = [_scenario(f"extracted_{i}") for i in range(30)]
+    extracted[17].behavior_under_test = "Rollback an uncommitted transaction."
+
+    def fake_chat(**kwargs):
+        prompt = kwargs["messages"][1]["content"]
+        ids = [f"extracted_{i}" for i in range(30) if f'"extracted_{i}"' in prompt]
+        assert len(ids) == 5 and "extracted_17" in ids
+        return _ollama_response(
+            ScenarioPairJudgments(
+                judgments=[_judgment("expert_1", i, precondition=False) for i in ids]
+            ).model_dump_json()
+        )
+
+    with patch("app.dbms_scenarios.ollama.chat", side_effect=fake_chat):
+        result = evaluate_dbms_scenario_coverage(
+            [expert], extracted, judge_candidates=5
+        )
+    assert result.coverage_percentage == 0
+
+
+def test_long_document_is_extracted_chunk_by_chunk_and_deduplicated():
+    from app.dbms_scenarios import identify_dbms_scenarios
+
+    document = "\n\n".join(
+        f"## Feature {i}\n" + "Behavior text. " * 120 for i in range(12)
+    )
+    assert len(document) > 6000
+    same = GeneratedDBMSScenarios(scenarios=[_scenario("x")])
+    with patch(
+        "app.dbms_scenarios.ollama.chat",
+        return_value=_ollama_response(same.model_dump_json()),
+    ) as chat:
+        scenarios = identify_dbms_scenarios(document)
+
+    assert chat.call_count > 1  # more than one model call for a long document
+    assert chat.call_args.kwargs["options"]["num_ctx"] == 8192
+    assert len(scenarios) == 1 and scenarios[0].id == "dbms_1"  # deduped
+
+
+def test_truncated_extraction_output_is_split_and_retried():
+    from app.dbms_scenarios import identify_dbms_scenarios
+
+    ok = GeneratedDBMSScenarios(scenarios=[_scenario("x")])
+    truncated = SimpleNamespace(
+        message=SimpleNamespace(content="{"), done_reason="length"
+    )
+    document = "## A\n" + "Behavior text. " * 100
+
+    def fake_chat(**kwargs):
+        del kwargs
+        if fake_chat.calls == 0:
+            fake_chat.calls += 1
+            return truncated
+        fake_chat.calls += 1
+        return _ollama_response(ok.model_dump_json())
+
+    fake_chat.calls = 0
+    with patch(
+        "app.dbms_scenarios.ollama.chat",
+        side_effect=fake_chat,
+    ) as chat:
+        scenarios = identify_dbms_scenarios(document)
+
+    assert chat.call_count > 1
+    assert len(scenarios) == 1
