@@ -134,3 +134,45 @@ def test_empty_document_is_rejected():
             identify_dbms_scenarios("   ")
 
     chat.assert_not_called()
+
+
+def test_truncated_chunk_is_split_and_retried():
+    from app.dbms_scenarios import _extract_dbms_chunk
+
+    text = (
+        "The database shall allow valid records to be inserted. "
+        * 40
+    )
+
+    successful = mock_response([
+        scenario("SC-1", "Insert a valid record")
+    ])
+
+    with patch(
+        "app.dbms_scenarios.ollama.chat",
+        side_effect=[
+            mock_response([], done_reason="length"),
+            successful,
+            successful,
+        ],
+    ) as chat:
+        results = _extract_dbms_chunk(text)
+
+    assert len(results) >= 2
+    assert chat.call_count == 3
+
+
+def test_persistent_truncation_raises_error():
+    from app.dbms_scenarios import _extract_dbms_chunk
+
+    text = (
+        "The database shall support transactions. "
+        * 40
+    )
+
+    with patch(
+        "app.dbms_scenarios.ollama.chat",
+        return_value=mock_response([], done_reason="length"),
+    ):
+        with pytest.raises(ValueError, match="truncated"):
+            _extract_dbms_chunk(text)

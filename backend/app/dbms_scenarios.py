@@ -15,23 +15,27 @@ from app.prompts import (
     build_dbms_scenario_prompt,
 )
 
-from app.dbms_chunking import chunk_document
-
+from app.dbms_chunking import chunk_document, split_text
 
 COVERAGE_TARGET_PERCENTAGE = 90.0
 
 MAX_CHUNK_CHARS = 6000
 MAX_CONTEXT_CHARS = 2000
+MAX_SPLIT_DEPTH = 3
+MIN_SPLIT_CHARS = 200
 
 
 class DBMSChunkResponse(BaseModel):
     scenarios: list[DBMSScenario] = Field(default_factory=list)
 
 
+
 def _extract_dbms_chunk(
     text: str,
     context: str = "",
+    depth: int = 0,
 ) -> list[DBMSScenario]:
+    """Extract scenarios, splitting and retrying truncated responses."""
     document = text
 
     if context:
@@ -59,15 +63,44 @@ def _extract_dbms_chunk(
     )
 
     if getattr(response, "done_reason", None) == "length":
-        raise ValueError(
-            "DBMS scenario extraction was truncated by the model. "
-            "Reduce the chunk size and retry."
+        if depth >= MAX_SPLIT_DEPTH or len(text) < 400:
+            raise ValueError(
+                "DBMS scenario extraction remained truncated "
+                "after splitting and retrying"
+            )
+
+        smaller_chunks = split_text(
+            text,
+            max(len(text) // 2, MIN_SPLIT_CHARS),
         )
+
+        # Avoid retrying the same unsplittable input.
+        if (
+            len(smaller_chunks) < 2
+            or any(part == text for part in smaller_chunks)
+        ):
+            raise ValueError(
+                "DBMS scenario extraction cannot be split further"
+            )
+
+        scenarios = []
+
+        for part in smaller_chunks:
+            scenarios.extend(
+                _extract_dbms_chunk(
+                    text=part,
+                    context=context,
+                    depth=depth + 1,
+                )
+            )
+
+        return scenarios
 
     result = DBMSChunkResponse.model_validate_json(
         response.message.content
     )
     return result.scenarios
+
 
 def identify_dbms_scenarios(
     requirement_document: str,
@@ -102,7 +135,24 @@ def identify_dbms_scenarios(
         )
 
         if getattr(response, "done_reason", None) == "length":
-            raise ValueError("DBMS scenario extraction was truncated")
+            recovered = _extract_dbms_chunk(
+                text=requirement_document,
+            )
+
+            if not recovered:
+                raise ValueError(
+                    "No DBMS test scenarios were identified"
+                )
+
+            recovered_ids = [scenario.id for scenario in recovered]
+
+            if len(set(recovered_ids)) != len(recovered_ids):
+                recovered = [
+                    scenario.model_copy(update={"id": f"dbms_{i}"})
+                    for i, scenario in enumerate(recovered, start=1)
+                ]
+
+            return recovered
 
         generated = GeneratedDBMSScenarios.model_validate_json(
             response.message.content
