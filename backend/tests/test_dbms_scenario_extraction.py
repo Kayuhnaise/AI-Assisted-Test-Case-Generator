@@ -176,3 +176,25 @@ def test_persistent_truncation_raises_error():
     ):
         with pytest.raises(ValueError, match="truncated"):
             _extract_dbms_chunk(text)
+
+
+def test_short_document_recovers_from_truncation():
+    document = (
+        "The database shall support inserting valid records. "
+        * 20
+    )
+
+    truncated = mock_response([], done_reason="length")
+    recovered = mock_response([
+        scenario("SC-1", "Insert a valid record")
+    ])
+
+    with patch(
+        "app.dbms_scenarios.ollama.chat",
+        side_effect=[truncated, recovered],
+    ) as chat:
+        results = identify_dbms_scenarios(document)
+
+    assert len(results) == 1
+    assert results[0].behavior_under_test == "Insert a valid record"
+    assert chat.call_count == 2
