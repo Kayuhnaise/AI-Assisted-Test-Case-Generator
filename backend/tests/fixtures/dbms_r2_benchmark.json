@@ -1,0 +1,256 @@
+{
+  "benchmark_id": "DBMS-R2-INITIAL-001",
+  "description": "Initial SQLite SQL test generation benchmark",
+  "sql_dialect": "sqlite",
+  "cases": [
+    {
+      "id": "R2-001",
+      "category": "positive",
+      "requirement_document": "The users table shall enforce unique, non-null email addresses. A new user with a distinct email shall be inserted successfully.",
+      "precondition": "The users table contains one user with email alice@example.com.",
+      "behavior_under_test": "Insert a second user with email bob@example.com.",
+      "expected_result": "The insertion succeeds and both users exist.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "expected_row_count": 2,
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": 2
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE email = 'bob@example.com'",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-002",
+      "category": "positive",
+      "requirement_document": "The accounts table shall store account balances as non-negative integers. Updating an account to a valid balance shall succeed.",
+      "precondition": "An account exists with id 1 and balance 100.",
+      "behavior_under_test": "Update the balance to 150.",
+      "expected_result": "The account balance becomes 150.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "expected_scalar": 150,
+        "verification_assertions": [
+          {
+            "query": "SELECT balance FROM accounts WHERE id = 1",
+            "expected_scalar": 150
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-003",
+      "category": "positive",
+      "requirement_document": "The orders table shall support deleting an existing order by its ID.",
+      "precondition": "Orders with IDs 1 and 2 exist.",
+      "behavior_under_test": "Delete the order with ID 1.",
+      "expected_result": "Only order 2 remains.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "expected_row_count": 1,
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE id = 1",
+            "expected_scalar": 0
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE id = 2",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-004",
+      "category": "negative",
+      "requirement_document": "The users table shall reject duplicate email addresses using a UNIQUE constraint.",
+      "precondition": "A user with email alice@example.com already exists.",
+      "behavior_under_test": "Insert another user with the same email.",
+      "expected_result": "A UNIQUE constraint error occurs and the existing row remains unchanged.",
+      "oracle": {
+        "expected_outcome_type": "error",
+        "expected_error": "UNIQUE constraint failed",
+        "expected_row_count": 1,
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": 1
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE email = 'alice@example.com'",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-005",
+      "category": "negative",
+      "requirement_document": "The users table shall require a non-null email address.",
+      "precondition": "A users table exists with email declared NOT NULL. The users table is initially empty.",
+      "behavior_under_test": "Insert a user with a NULL email.",
+      "expected_result": "The insertion fails with a NOT NULL constraint error.",
+      "oracle": {
+        "expected_outcome_type": "error",
+        "expected_error": "NOT NULL constraint failed",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-006",
+      "category": "negative",
+      "requirement_document": "Every order shall reference an existing customer through a foreign key.",
+      "precondition": "The customers and orders tables exist. The orders table is initially empty. Customer 999 does not exist. Foreign key enforcement is enabled.",
+      "behavior_under_test": "Insert an order referencing customer 999.",
+      "expected_result": "The insertion fails with a FOREIGN KEY constraint error.",
+      "oracle": {
+        "expected_outcome_type": "error",
+        "expected_error": "FOREIGN KEY constraint failed",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM orders",
+            "expected_scalar": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-007",
+      "category": "boundary",
+      "requirement_document": "Account balances shall be non-negative integers, including zero.",
+      "precondition": "An accounts table exists with a CHECK constraint requiring balance >= 0.",
+      "behavior_under_test": "Insert an account with balance 0.",
+      "expected_result": "The insertion succeeds and the stored balance is 0.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "expected_scalar": 0,
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM accounts WHERE balance = 0",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-008",
+      "category": "boundary",
+      "requirement_document": "A product quantity shall be between 1 and 100 inclusive.",
+      "precondition": "A products table exists with a quantity CHECK constraint.",
+      "behavior_under_test": "Insert a product with quantity 100.",
+      "expected_result": "The insertion succeeds and quantity 100 is stored.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "expected_scalar": 100,
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM products WHERE quantity = 100",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-009",
+      "category": "boundary",
+      "requirement_document": "A product quantity shall be between 1 and 100 inclusive.",
+      "precondition": "A products table exists with a quantity CHECK constraint. The products table is initially empty.",
+      "behavior_under_test": "Insert a product with quantity 101.",
+      "expected_result": "The insertion is rejected with a CHECK constraint error.",
+      "oracle": {
+        "expected_outcome_type": "error",
+        "expected_error": "CHECK constraint failed",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM products",
+            "expected_scalar": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-010",
+      "category": "edge",
+      "requirement_document": "User email addresses shall be unique regardless of letter case.",
+      "precondition": "A user with email Alice@example.com exists. Email uniqueness is case-insensitive.",
+      "behavior_under_test": "Insert a user with email alice@example.com.",
+      "expected_result": "The insertion is rejected as a duplicate.",
+      "oracle": {
+        "expected_outcome_type": "error",
+        "expected_error": "UNIQUE constraint failed",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": 1
+          },
+          {
+            "query": "SELECT email FROM users LIMIT 1",
+            "expected_scalar": "Alice@example.com"
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-011",
+      "category": "edge",
+      "requirement_document": "Deleting a customer shall cascade-delete all orders belonging to that customer.",
+      "precondition": "Customer 1 has two orders and customer 2 has one order. Foreign keys and ON DELETE CASCADE are enabled. Schema contract: customers.id is the primary key; orders.customer_id references customers.id.",
+      "behavior_under_test": "Delete customer 1.",
+      "expected_result": "Customer 1 and its two orders are removed, while customer 2 and its order remain.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "expected_row_count": 1,
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1",
+            "expected_scalar": 0
+          },
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 2",
+            "expected_scalar": 1
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 1",
+            "expected_scalar": 0
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 2",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-012",
+      "category": "edge",
+      "requirement_document": "Deleting a customer shall be rejected when dependent orders exist and the foreign key uses ON DELETE RESTRICT.",
+      "precondition": "Customer 1 exists and has one dependent order. Schema contract: customers.id is the primary key; orders.customer_id references customers.id.",
+      "behavior_under_test": "Delete customer 1.",
+      "expected_result": "The deletion fails with a foreign key error and both records remain.",
+      "oracle": {
+        "expected_outcome_type": "error",
+        "expected_error": "FOREIGN KEY constraint failed",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1",
+            "expected_scalar": 1
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 1",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    }
+  ]
+}

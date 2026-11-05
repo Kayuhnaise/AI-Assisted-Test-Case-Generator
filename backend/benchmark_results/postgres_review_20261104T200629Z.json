@@ -1,0 +1,734 @@
+{
+  "model": "claude-fable-5-1",
+  "benchmark_id": "DBMS-R2-INITIAL-001",
+  "results": [
+    {
+      "scenario_id": "R2-001",
+      "category": "positive",
+      "generated_test": {
+        "id": "TC-R2-001",
+        "scenario_id": "R2-001",
+        "title": "Insert a second user with a distinct email succeeds",
+        "category": "positive",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "The users table exists with a unique, non-null email column.",
+          "The users table contains exactly one user with email alice@example.com."
+        ],
+        "constraints": [
+          "users.email is NOT NULL",
+          "users.email is UNIQUE",
+          "users.user_id is the primary key"
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS users;",
+          "CREATE TABLE users (user_id INTEGER PRIMARY KEY, email TEXT NOT NULL UNIQUE);",
+          "INSERT INTO users (user_id, email) VALUES (1, 'alice@example.com');"
+        ],
+        "test_sql": "INSERT INTO users (user_id, email) VALUES (2, 'bob@example.com');",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users;",
+            "expected_scalar": 2,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT user_id, email FROM users ORDER BY user_id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                "alice@example.com"
+              ],
+              [
+                2,
+                "bob@example.com"
+              ]
+            ]
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE email = 'bob@example.com';",
+            "expected_scalar": 1,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The INSERT succeeds without error; the users table contains two rows: alice@example.com and bob@example.com."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS users;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-002",
+      "category": "positive",
+      "generated_test": {
+        "id": "TC-R2-002",
+        "scenario_id": "R2-002",
+        "title": "Update account balance from 100 to a valid non-negative value 150",
+        "category": "positive",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "Table accounts exists with columns id (INTEGER PRIMARY KEY) and balance (INTEGER NOT NULL, CHECK balance >= 0).",
+          "An account exists with id 1 and balance 100."
+        ],
+        "constraints": [
+          "accounts.balance must be a non-negative integer (CHECK (balance >= 0)).",
+          "accounts.balance is NOT NULL.",
+          "accounts.id is the primary key."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS accounts;",
+          "CREATE TABLE accounts (id INTEGER PRIMARY KEY, balance INTEGER NOT NULL CHECK (balance >= 0));",
+          "INSERT INTO accounts (id, balance) VALUES (1, 100);"
+        ],
+        "test_sql": "UPDATE accounts SET balance = 150 WHERE id = 1;",
+        "verification_assertions": [
+          {
+            "query": "SELECT balance FROM accounts WHERE id = 1;",
+            "expected_scalar": 150,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM accounts;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT id, balance FROM accounts ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                150
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The UPDATE succeeds; account id 1 has balance 150 and the table still contains exactly one row."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS accounts;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-003",
+      "category": "positive",
+      "generated_test": {
+        "id": "TC-R2-003",
+        "scenario_id": "R2-003",
+        "title": "Delete existing order by ID leaves only the other order",
+        "category": "positive",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "Table orders exists",
+          "Orders with IDs 1 and 2 exist"
+        ],
+        "constraints": [
+          "orders.id is the primary key",
+          "orders.customer_name is NOT NULL"
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS orders;",
+          "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_name TEXT NOT NULL, amount NUMERIC(10,2) NOT NULL);",
+          "INSERT INTO orders (id, customer_name, amount) VALUES (1, 'Alice', 100.00), (2, 'Bob', 250.50);"
+        ],
+        "test_sql": "DELETE FROM orders WHERE id = 1;",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM orders;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE id = 1;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT id, customer_name FROM orders ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                2,
+                "Bob"
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The DELETE succeeds; order 1 is removed and only order 2 remains in the orders table."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS orders;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-004",
+      "category": "negative",
+      "generated_test": {
+        "id": "TC-R2-004",
+        "scenario_id": "R2-004",
+        "title": "Reject insert of duplicate email into users table via UNIQUE constraint",
+        "category": "negative",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "The users table exists with a UNIQUE constraint on the email column.",
+          "A user with email alice@example.com already exists in the users table."
+        ],
+        "constraints": [
+          "users.email has a UNIQUE constraint.",
+          "users.id is the primary key.",
+          "The existing row for alice@example.com must remain unchanged after the rejected insert."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS users;",
+          "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE);",
+          "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
+        ],
+        "test_sql": "INSERT INTO users (id, name, email) VALUES (2, 'Alice Duplicate', 'alice@example.com');",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT id, name, email FROM users WHERE email = 'alice@example.com' ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                "Alice",
+                "alice@example.com"
+              ]
+            ]
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE id = 2;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "duplicate key value",
+          "assertion_description": "The INSERT fails with a UNIQUE constraint violation (duplicate key value violates unique constraint) and the existing row for alice@example.com remains unchanged; the table still contains exactly one row."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS users;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-005",
+      "category": "negative",
+      "generated_test": {
+        "id": "TC-R2-005-PG-01",
+        "scenario_id": "R2-005",
+        "title": "Insert user with NULL email is rejected by NOT NULL constraint",
+        "category": "negative",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "A users table exists with the email column declared NOT NULL.",
+          "The users table is initially empty."
+        ],
+        "constraints": [
+          "users.email is NOT NULL.",
+          "users.id is the primary key.",
+          "No rows exist in users before the test operation."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS users;",
+          "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT NOT NULL);"
+        ],
+        "test_sql": "INSERT INTO users (id, name, email) VALUES (1, 'Alice', NULL);",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT id, name, email FROM users ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": []
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "null value",
+          "assertion_description": "The INSERT with a NULL email fails with a NOT NULL constraint violation (error message contains 'null value in column \"email\"'), and the users table remains empty."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS users;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-006",
+      "category": "negative",
+      "generated_test": {
+        "id": "TC-R2-006-PG",
+        "scenario_id": "R2-006",
+        "title": "Insert order referencing non-existent customer 999 fails with foreign key violation",
+        "category": "negative",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "The customers and orders tables exist.",
+          "The orders table is initially empty.",
+          "Customer 999 does not exist in the customers table.",
+          "Foreign key enforcement is enabled (PostgreSQL always enforces foreign keys)."
+        ],
+        "constraints": [
+          "orders.customer_id is a foreign key referencing customers.customer_id.",
+          "Customer 999 must not exist in customers.",
+          "orders must remain empty after the rejected insert."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS orders;",
+          "DROP TABLE IF EXISTS customers;",
+          "CREATE TABLE customers (customer_id INTEGER PRIMARY KEY, name TEXT NOT NULL);",
+          "CREATE TABLE orders (order_id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL, amount NUMERIC(10,2) NOT NULL, CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(customer_id));",
+          "INSERT INTO customers (customer_id, name) VALUES (1, 'Alice');"
+        ],
+        "test_sql": "INSERT INTO orders (order_id, customer_id, amount) VALUES (1, 999, 50.00);",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM orders;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE customer_id = 999;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT customer_id, name FROM customers ORDER BY customer_id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                "Alice"
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "foreign key constraint",
+          "assertion_description": "The INSERT into orders referencing customer 999 is rejected with a foreign key constraint violation, and the orders table remains empty."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS orders;",
+          "DROP TABLE IF EXISTS customers;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-007",
+      "category": "boundary",
+      "generated_test": {
+        "id": "TC-R2-007",
+        "scenario_id": "R2-007",
+        "title": "Insert account with boundary balance of zero succeeds",
+        "category": "boundary",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "An accounts table exists with a CHECK constraint requiring balance >= 0.",
+          "The accounts table is initially empty."
+        ],
+        "constraints": [
+          "accounts.account_id is the primary key.",
+          "accounts.balance is an INTEGER column with NOT NULL and CHECK (balance >= 0)."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS accounts;",
+          "CREATE TABLE accounts (account_id INTEGER PRIMARY KEY, balance INTEGER NOT NULL CHECK (balance >= 0));"
+        ],
+        "test_sql": "INSERT INTO accounts (account_id, balance) VALUES (1, 0);",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM accounts;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT balance FROM accounts WHERE account_id = 1;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT account_id, balance FROM accounts ORDER BY account_id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                0
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The insert succeeds without a CHECK constraint violation; the accounts table contains exactly one row with account_id 1 and a stored balance of 0."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS accounts;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-008",
+      "category": "boundary",
+      "generated_test": {
+        "id": "TC-R2-008",
+        "scenario_id": "R2-008",
+        "title": "Insert product with quantity at upper boundary 100 succeeds",
+        "category": "boundary",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "A products table exists with a CHECK constraint restricting quantity to between 1 and 100 inclusive.",
+          "The products table is initially empty."
+        ],
+        "constraints": [
+          "products.product_id is the primary key.",
+          "products.quantity is NOT NULL and must satisfy CHECK (quantity BETWEEN 1 AND 100)."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS products;",
+          "CREATE TABLE products (product_id INTEGER PRIMARY KEY, name TEXT NOT NULL, quantity INTEGER NOT NULL CONSTRAINT products_quantity_range CHECK (quantity BETWEEN 1 AND 100));"
+        ],
+        "test_sql": "INSERT INTO products (product_id, name, quantity) VALUES (1, 'Boundary Product', 100);",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM products;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT product_id, name, quantity FROM products WHERE product_id = 1;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                "Boundary Product",
+                100
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The INSERT succeeds without violating the CHECK constraint; the products table contains exactly one row with product_id 1 and quantity 100."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS products;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-009",
+      "category": "boundary",
+      "generated_test": {
+        "id": "TC-R2-009",
+        "scenario_id": "R2-009",
+        "title": "Reject product insert with quantity 101 (upper boundary + 1)",
+        "category": "boundary",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "A products table exists with a CHECK constraint restricting quantity to the range 1 to 100 inclusive.",
+          "The products table is initially empty."
+        ],
+        "constraints": [
+          "products.product_id is the primary key.",
+          "products.quantity is NOT NULL and must satisfy CHECK (quantity BETWEEN 1 AND 100).",
+          "No rows exist in products before the test operation."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS products;",
+          "CREATE TABLE products (product_id INTEGER PRIMARY KEY, name TEXT NOT NULL, quantity INTEGER NOT NULL, CONSTRAINT products_quantity_check CHECK (quantity BETWEEN 1 AND 100));"
+        ],
+        "test_sql": "INSERT INTO products (product_id, name, quantity) VALUES (1, 'Widget', 101);",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM products;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM products WHERE quantity = 101;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "violates check constraint",
+          "assertion_description": "The INSERT with quantity 101 fails with a CHECK constraint violation error (products_quantity_check) and the products table remains empty."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS products;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-010",
+      "category": "edge",
+      "generated_test": {
+        "id": "TC-R2-010",
+        "scenario_id": "R2-010",
+        "title": "Insert of email differing only by letter case from existing user is rejected as duplicate",
+        "category": "edge",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "Table users exists with a unique case-insensitive constraint on email, implemented via a unique index on LOWER(email).",
+          "A user with email 'Alice@example.com' exists in the users table."
+        ],
+        "constraints": [
+          "users.user_id is the primary key.",
+          "users.email is NOT NULL.",
+          "Email uniqueness is enforced case-insensitively via unique index users_email_lower_uidx on LOWER(email)."
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS users;",
+          "CREATE TABLE users (user_id INTEGER PRIMARY KEY, email TEXT NOT NULL);",
+          "CREATE UNIQUE INDEX users_email_lower_uidx ON users (LOWER(email));",
+          "INSERT INTO users (user_id, email) VALUES (1, 'Alice@example.com');"
+        ],
+        "test_sql": "INSERT INTO users (user_id, email) VALUES (2, 'alice@example.com');",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT user_id, email FROM users ORDER BY user_id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                "Alice@example.com"
+              ]
+            ]
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE LOWER(email) = 'alice@example.com';",
+            "expected_scalar": 1,
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "duplicate key value",
+          "assertion_description": "Inserting 'alice@example.com' when 'Alice@example.com' already exists fails with a unique violation (duplicate key value violates unique constraint), and the users table still contains only the original row."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS users;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-011",
+      "category": "edge",
+      "generated_test": {
+        "id": "TC-R2-011",
+        "scenario_id": "R2-011",
+        "title": "Deleting customer 1 cascade-deletes its two orders while customer 2 and its order remain",
+        "category": "edge",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "Table customers exists with primary key id and contains customers 1 and 2",
+          "Table orders exists with customer_id referencing customers.id ON DELETE CASCADE",
+          "Customer 1 has two orders (ids 101, 102); customer 2 has one order (id 201)"
+        ],
+        "constraints": [
+          "customers.id is the primary key",
+          "orders.customer_id is a foreign key referencing customers.id with ON DELETE CASCADE",
+          "Customer 2 and order 201 must remain unchanged after the test"
+        ],
+        "setup_sql": [
+          "DROP TABLE IF EXISTS orders;",
+          "DROP TABLE IF EXISTS customers;",
+          "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);",
+          "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE, amount INTEGER NOT NULL);",
+          "INSERT INTO customers (id, name) VALUES (1, 'Alice'), (2, 'Bob');",
+          "INSERT INTO orders (id, customer_id, amount) VALUES (101, 1, 50), (102, 1, 75), (201, 2, 20);"
+        ],
+        "test_sql": "DELETE FROM customers WHERE id = 1;",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 1;",
+            "expected_scalar": 0,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM customers;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT id, name FROM customers ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                2,
+                "Bob"
+              ]
+            ]
+          },
+          {
+            "query": "SELECT id, customer_id, amount FROM orders ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                201,
+                2,
+                20
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "database_state",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "DELETE succeeds; customer 1 and its orders 101 and 102 are removed via cascade, leaving only customer 2 and order 201."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS orders;",
+          "DROP TABLE IF EXISTS customers;"
+        ]
+      },
+      "generation_successful": true
+    },
+    {
+      "scenario_id": "R2-012",
+      "category": "edge",
+      "generated_test": {
+        "id": "TC-R2-012",
+        "scenario_id": "R2-012",
+        "title": "Deleting customer with dependent order is rejected under ON DELETE RESTRICT",
+        "category": "edge",
+        "sql_dialect": "postgresql",
+        "preconditions": [
+          "Table customers exists with primary key column id and contains customer 1.",
+          "Table orders exists with column customer_id referencing customers.id using ON DELETE RESTRICT.",
+          "Exactly one order (id 100) exists referencing customer 1."
+        ],
+        "constraints": [
+          "customers.id is the primary key.",
+          "orders.customer_id is a foreign key referencing customers.id with ON DELETE RESTRICT.",
+          "Both the customer row and the dependent order row must remain unchanged after the rejected delete."
+        ],
+        "setup_sql": [
+          "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);",
+          "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE RESTRICT, amount INTEGER NOT NULL);",
+          "INSERT INTO customers (id, name) VALUES (1, 'Alice');",
+          "INSERT INTO orders (id, customer_id, amount) VALUES (100, 1, 250);"
+        ],
+        "test_sql": "DELETE FROM customers WHERE id = 1;",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 1;",
+            "expected_scalar": 1,
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT id, name FROM customers ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                1,
+                "Alice"
+              ]
+            ]
+          },
+          {
+            "query": "SELECT id, customer_id, amount FROM orders ORDER BY id;",
+            "expected_scalar": null,
+            "expected_rows": [
+              [
+                100,
+                1,
+                250
+              ]
+            ]
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "foreign key constraint",
+          "assertion_description": "The DELETE of customer 1 fails with a foreign key constraint violation because a dependent order exists and the FK uses ON DELETE RESTRICT; both the customer row and the order row remain unchanged."
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS orders;",
+          "DROP TABLE IF EXISTS customers;"
+        ]
+      },
+      "generation_successful": true
+    }
+  ]
+}

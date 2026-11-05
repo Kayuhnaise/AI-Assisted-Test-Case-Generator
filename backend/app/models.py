@@ -217,7 +217,7 @@ class DBMSSQLTestCase(BaseModel):
         "positive", "negative", "boundary", "edge"
     ]
 
-    sql_dialect: Literal["sqlite"]
+    sql_dialect: Literal["sqlite", "postgresql"]
 
     preconditions: list[str]
     constraints: list[str]

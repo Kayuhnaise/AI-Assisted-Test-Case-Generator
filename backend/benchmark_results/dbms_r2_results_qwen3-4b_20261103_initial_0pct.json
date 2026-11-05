@@ -1,0 +1,335 @@
+{
+  "benchmark_id": "DBMS-R2-INITIAL-001",
+  "timestamp_utc": "2026-11-03T20:12:45.104029+00:00",
+  "model": "qwen3:4b",
+  "summary": {
+    "total_scenarios": 12,
+    "generation_successful": 5,
+    "validation_passed": 0,
+    "oracle_matched": 1,
+    "preliminary_valid": 0,
+    "preliminary_validity_percentage": 0.0,
+    "category_counts": {
+      "positive": 3,
+      "negative": 3,
+      "boundary": 3,
+      "edge": 3
+    }
+  },
+  "results": [
+    {
+      "scenario_id": "R2-001",
+      "category": "positive",
+      "generation_successful": true,
+      "validation_status": "failed",
+      "oracle_match": false,
+      "error": null,
+      "validation_errors": [
+        "Expected scalar '2', got None",
+        "Verification failed for SELECT COUNT(*) FROM users: expected '2', got 2"
+      ],
+      "actual_outcome": "None",
+      "generated_test": {
+        "id": "test_R2-001",
+        "scenario_id": "R2-001",
+        "title": "Insert new user with distinct email succeeds",
+        "category": "positive",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "The users table contains one user with email alice@example.com."
+        ],
+        "constraints": [
+          "email column must be NOT NULL and UNIQUE"
+        ],
+        "setup_sql": [
+          "CREATE TABLE users (email TEXT NOT NULL UNIQUE);",
+          "INSERT INTO users (email) VALUES ('alice@example.com');"
+        ],
+        "test_sql": "INSERT INTO users (email) VALUES ('bob@example.com');",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": "2",
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "scalar",
+          "expected_value": "2",
+          "expected_error": null,
+          "assertion_description": "Insertion succeeds and both users exist"
+        },
+        "cleanup_sql": [
+          "DROP TABLE users;"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-002",
+      "category": "positive",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test T-R2-002 uses verification_sql without expected results"
+    },
+    {
+      "scenario_id": "R2-003",
+      "category": "positive",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test R2-003 requires verification_assertions"
+    },
+    {
+      "scenario_id": "R2-004",
+      "category": "negative",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test T-R2-004 is missing the expected SQL error"
+    },
+    {
+      "scenario_id": "R2-005",
+      "category": "negative",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test T-R2-005 is missing the expected SQL error"
+    },
+    {
+      "scenario_id": "R2-006",
+      "category": "negative",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValidationError: 2 validation errors for GeneratedDBMSSQLTests\ntest_cases.0.verification_assertions.0\n  Value error, Provide exactly one of expected_scalar or expected_rows [type=value_error, input_value={'query': 'SELECT COUNT(*... 0, 'expected_rows': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error\ntest_cases.1.verification_assertions.0\n  Value error, Provide exactly one of expected_scalar or expected_rows [type=value_error, input_value={'query': 'SELECT COUNT(*... 1, 'expected_rows': []}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error"
+    },
+    {
+      "scenario_id": "R2-007",
+      "category": "boundary",
+      "generation_successful": true,
+      "validation_status": "failed",
+      "oracle_match": false,
+      "error": null,
+      "validation_errors": [
+        "Verification failed for SELECT balance FROM accounts WHERE balance = 0 LIMIT 1: expected '0', got 0"
+      ],
+      "actual_outcome": "None",
+      "generated_test": {
+        "id": "T1",
+        "scenario_id": "R2-007",
+        "title": "Insert account with balance 0 succeeds",
+        "category": "boundary",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "The table 'accounts' does not exist"
+        ],
+        "constraints": [
+          "accounts table with balance integer and CHECK (balance >= 0)"
+        ],
+        "setup_sql": [
+          "CREATE TABLE accounts (balance INTEGER CHECK (balance >= 0));"
+        ],
+        "test_sql": "INSERT INTO accounts (balance) VALUES (0);",
+        "verification_assertions": [
+          {
+            "query": "SELECT balance FROM accounts WHERE balance = 0 LIMIT 1",
+            "expected_scalar": "0",
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "scalar",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The inserted account has balance 0"
+        },
+        "cleanup_sql": [
+          "DROP TABLE IF EXISTS accounts;"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-008",
+      "category": "boundary",
+      "generation_successful": true,
+      "validation_status": "failed",
+      "oracle_match": false,
+      "error": null,
+      "validation_errors": [
+        "Verification failed for SELECT COUNT(*) FROM products WHERE quantity = 100: expected '1', got 1"
+      ],
+      "actual_outcome": "None",
+      "generated_test": {
+        "id": "T-R2-008",
+        "scenario_id": "R2-008",
+        "title": "Insert product with quantity 100 (boundary case)",
+        "category": "boundary",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "A products table exists with a quantity CHECK constraint."
+        ],
+        "constraints": [
+          "products table with quantity column having CHECK (quantity BETWEEN 1 AND 100)"
+        ],
+        "setup_sql": [
+          "CREATE TABLE products (product_id INTEGER PRIMARY KEY AUTOINCREMENT, quantity INTEGER NOT NULL CHECK (quantity BETWEEN 1 AND 100));"
+        ],
+        "test_sql": "INSERT INTO products (quantity) VALUES (100);",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM products WHERE quantity = 100",
+            "expected_scalar": "1",
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "scalar",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "The insertion succeeds and quantity 100 is stored."
+        },
+        "cleanup_sql": [
+          "DROP TABLE products;"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-009",
+      "category": "boundary",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: Generated SQL tests must cover every scenario"
+    },
+    {
+      "scenario_id": "R2-010",
+      "category": "edge",
+      "generation_successful": true,
+      "validation_status": "failed",
+      "oracle_match": true,
+      "error": null,
+      "validation_errors": [
+        "Verification failed for SELECT COUNT(*) FROM users: expected '1', got 1"
+      ],
+      "actual_outcome": "UNIQUE constraint failed: index 'idx_email_lower'",
+      "generated_test": {
+        "id": "R2-010",
+        "scenario_id": "R2-010",
+        "title": "Insert case-insensitive duplicate email is rejected",
+        "category": "edge",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "A user with email Alice@example.com exists",
+          "Email uniqueness is case-insensitive"
+        ],
+        "constraints": [
+          "Email uniqueness is case-insensitive"
+        ],
+        "setup_sql": [
+          "CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL);",
+          "CREATE UNIQUE INDEX idx_email_lower ON users (LOWER(email));",
+          "INSERT INTO users (email) VALUES ('Alice@example.com');"
+        ],
+        "test_sql": "INSERT INTO users (email) VALUES ('alice@example.com');",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": "1",
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "error",
+          "expected_value": null,
+          "expected_error": "UNIQUE constraint failed",
+          "assertion_description": "UNIQUE constraint failed"
+        },
+        "cleanup_sql": [
+          "DROP TABLE users"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-011",
+      "category": "edge",
+      "generation_successful": true,
+      "validation_status": "failed",
+      "oracle_match": false,
+      "error": null,
+      "validation_errors": [
+        "Verification failed for SELECT COUNT(*) FROM customers WHERE id = 1: expected '0', got 0",
+        "Verification failed for SELECT COUNT(*) FROM customers WHERE id = 2: expected '1', got 1",
+        "Verification failed for SELECT COUNT(*) FROM orders WHERE customer_id = 2: expected '1', got 1"
+      ],
+      "actual_outcome": "None",
+      "generated_test": {
+        "id": "R2-011",
+        "scenario_id": "R2-011",
+        "title": "Delete customer 1 with cascade delete",
+        "category": "edge",
+        "sql_dialect": "sqlite",
+        "preconditions": [
+          "Customer 1 has two orders and customer 2 has one order",
+          "Foreign keys and ON DELETE CASCADE are enabled"
+        ],
+        "constraints": [
+          "customers.id is primary key",
+          "orders.customer_id is foreign key to customers.id with ON DELETE CASCADE"
+        ],
+        "setup_sql": [
+          "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT);",
+          "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE);",
+          "INSERT INTO customers (id, name) VALUES (1, 'Customer 1');",
+          "INSERT INTO customers (id, name) VALUES (2, 'Customer 2');",
+          "INSERT INTO orders (id, customer_id) VALUES (1, 1);",
+          "INSERT INTO orders (id, customer_id) VALUES (2, 1);",
+          "INSERT INTO orders (id, customer_id) VALUES (3, 2);"
+        ],
+        "test_sql": "DELETE FROM customers WHERE id = 1",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 1",
+            "expected_scalar": "0",
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM customers WHERE id = 2",
+            "expected_scalar": "1",
+            "expected_rows": null
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders WHERE customer_id = 2",
+            "expected_scalar": "1",
+            "expected_rows": null
+          }
+        ],
+        "verification_sql": [],
+        "expected_outcome": {
+          "outcome_type": "scalar",
+          "expected_value": null,
+          "expected_error": null,
+          "assertion_description": "Customer 1 and its two orders are removed, while customer 2 and its order remain."
+        },
+        "cleanup_sql": [
+          "DELETE FROM customers;",
+          "DELETE FROM orders;",
+          "DROP TABLE customers;",
+          "DROP TABLE orders;"
+        ]
+      }
+    },
+    {
+      "scenario_id": "R2-012",
+      "category": "edge",
+      "generation_successful": false,
+      "validation_status": "not_run",
+      "oracle_match": false,
+      "error": "ValueError: SQL test R2-012_edge_delete_customer is missing the expected SQL error"
+    }
+  ]
+}

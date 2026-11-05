@@ -1,3 +1,4 @@
+
 name: Backend Tests
 
 on:
@@ -9,6 +10,24 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: dbtestgen_runner
+          POSTGRES_PASSWORD: runner_ci_only_password
+          POSTGRES_DB: dbtestgen
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U dbtestgen_runner -d dbtestgen"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DBTESTGEN_POSTGRES_URL: postgresql://dbtestgen_runner:runner_ci_only_password@127.0.0.1:5433/dbtestgen
 
     defaults:
       run:
@@ -28,5 +47,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Initialize PostgreSQL test schema
+        run: |
+          python -c "import os, psycopg; c=psycopg.connect(os.environ['DBTESTGEN_POSTGRES_URL']); c.execute('CREATE SCHEMA IF NOT EXISTS dbtestgen_sandbox'); c.commit(); c.close()"
+
       - name: Run automated tests
-        run: python -m pytest -q
+        run: python -m pytest tests -q

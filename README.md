@@ -1,4 +1,70 @@
-# Automated Test Case Generation for Database Systems via LLM-Driven Requirement Parsing
+﻿# Automated Test Case Generation for Database Systems via LLM-Driven Requirement Parsing
+
+## Current Project Status — November 5, 2026
+
+DB-TestGen extends the original AI-assisted Python test generator
+with requirement-driven SQL test generation and validation.
+
+### Project Components
+
+| Component | Status | Description |
+|---|---|---|
+| R1: Scenario Extraction | Implemented; integration pending | Extracts positive, negative, boundary, and edge scenarios from DBMS requirements |
+| R1: Scenario Coverage | Implemented | Compares extracted scenarios against expert-labeled scenarios |
+| R2: SQL Test Generation | Implemented and benchmarked | Generates scenario-linked SQLite and PostgreSQL tests using Claude |
+| R2: SQL Validation | Implemented and benchmarked | Checks SQL behavior, constraints, expected errors, and database state |
+| R1-R2 Integration | Pending | Connect both components and evaluate the complete workflow |
+
+### Latest R2 Evaluation
+
+The controlled benchmark contains 12 scenarios: three positive,
+three negative, three boundary, and three edge cases.
+
+| Metric | SQLite | PostgreSQL |
+|---|---:|---:|
+| Generated tests | 12/12 | 12/12 |
+| Validation passed | 12/12 | 12/12 |
+| Exact oracle metadata matches | 12/12 | 10/12 |
+| Independently valid | 12/12 (100%) | 12/12 (100%) |
+
+Evaluated model: `claude-fable-5-1`.
+
+The two PostgreSQL metadata mismatches concern foreign-key error
+wording; both scenarios passed independent execution validation.
+
+Latest reported local regression run: **42 tests passing**.
+
+These results reflect a small, iteratively refined benchmark,
+not general model accuracy.
+
+### Implementation and Safety
+
+- Original Python test generation uses Ollama and Qwen3:4b.
+- R2 SQL generation uses the Anthropic Claude API.
+- SQLite SQL generation and validation are available through
+  the existing DBMS endpoints.
+- PostgreSQL generation and validation have been evaluated through
+  a separate benchmark script, not a fully integrated API workflow.
+- PostgreSQL SQL must be manually reviewed and executed only
+  in an isolated, disposable database without sensitive data.
+- Generated SQL execution is not a secure arbitrary-SQL sandbox.
+
+### Repository Branches
+
+- `main`: Initial R1 and SQLite R2 implementations.
+- `feature/dbms-r2-benchmark`: R2 benchmark development.
+- `feature/dbms-postgresql`: R2 benchmark plus PostgreSQL work;
+  proposed for merging into `main`.
+
+### Next Steps
+
+1. Merge the reviewed PostgreSQL branch into `main`.
+2. Integrate R1 scenario extraction with R2 SQL generation.
+3. Validate the end-to-end workflow using PostgreSQL.
+4. Expand evaluation and document remaining limitations.
+
+---
+
 
 ## Team Members
 
@@ -6,7 +72,7 @@
 - Samhitha Dwarakanath
 - Keya Gangadharan
 
-**Course:** SWENG 889 — Fall I 2026
+**Course:** SWENG 889 â€” Fall I 2026
 
 ---
 
@@ -153,31 +219,31 @@ The LLM runs locally through Ollama. No hosted AI API is required.
 ```text
 AI-Assisted-Test-Case-Generator/
 |
-├── backend/
-|   ├── app/
-|   |   ├── __init__.py
-|   |   ├── main.py
-|   |   ├── models.py
-|   |   ├── generator.py
-|   |   ├── prompts.py
-|   |   └── test_runner.py
+â”œâ”€â”€ backend/
+|   â”œâ”€â”€ app/
+|   |   â”œâ”€â”€ __init__.py
+|   |   â”œâ”€â”€ main.py
+|   |   â”œâ”€â”€ models.py
+|   |   â”œâ”€â”€ generator.py
+|   |   â”œâ”€â”€ prompts.py
+|   |   â””â”€â”€ test_runner.py
 |   |
-|   ├── tests/
-|   |   └── test_generate.py
+|   â”œâ”€â”€ tests/
+|   |   â””â”€â”€ test_generate.py
 |   |
-|   └── requirements.txt
+|   â””â”€â”€ requirements.txt
 |
-├── evaluation/
-|   ├── reference/
-|   |   ├── account_lockout.json
-|   |   ├── order_discount.json
-|   |   ├── safe_division.json
-|   |   └── username_length.json
+â”œâ”€â”€ evaluation/
+|   â”œâ”€â”€ reference/
+|   |   â”œâ”€â”€ account_lockout.json
+|   |   â”œâ”€â”€ order_discount.json
+|   |   â”œâ”€â”€ safe_division.json
+|   |   â””â”€â”€ username_length.json
 |   |
-|   └── evaluation result JSON files
+|   â””â”€â”€ evaluation result JSON files
 |
-├── .gitignore
-└── README.md
+â”œâ”€â”€ .gitignore
+â””â”€â”€ README.md
 ```
 
 Additional final-project documentation may be added under `docs/`.
@@ -610,11 +676,11 @@ above 90% is claimed without running that benchmark.
 | Baseline | 3/4 | 8/8* |
 | Improvement 1 | 4/4 | 14/16 |
 | Improvement 2 | 3/4 | 9/10* |
-| Improvement 3 | 4/4† | 10/15 |
+| Improvement 3 | 4/4â€  | 10/15 |
 
 `*` Excludes requirements where the pipeline failed before executable tests were produced.
 
-`†` The first Safe Division Improvement 3 attempt encountered a local Ollama inference failure. A single retry completed successfully.
+`â€ ` The first Safe Division Improvement 3 attempt encountered a local Ollama inference failure. A single retry completed successfully.
 
 ---
 
@@ -840,11 +906,11 @@ For example, the system could inspect generated test function calls using Python
 
 The project depends on the following external software:
 
-- **Ollama** — local model runtime
-- **Qwen3:4b** — local LLM
-- **FastAPI** — API framework
-- **Pydantic** — structured validation
-- **pytest** — test execution
+- **Ollama** â€” local model runtime
+- **Qwen3:4b** â€” local LLM
+- **FastAPI** â€” API framework
+- **Pydantic** â€” structured validation
+- **pytest** â€” test execution
 
 Python package versions used by the project are recorded in:
 
@@ -900,4 +966,4 @@ However, the experiments also exposed semantic hallucinations, structural genera
 
 The primary conclusion is:
 
-> **AI can assist test generation, but reliable AI-assisted testing requires engineering and validation around the model—not just prompting it.**
+> **AI can assist test generation, but reliable AI-assisted testing requires engineering and validation around the modelâ€”not just prompting it.**
