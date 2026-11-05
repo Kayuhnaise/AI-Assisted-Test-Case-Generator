@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from app.models import (
     DBMSCoverageRequest,
     DBMSCoverageResponse,
+    DBMSPipelineGenerationRequest,
+    DBMSPipelineGenerationResponse,
     DBMSRequirementInput,
     DBMSScenarioResponse,
     DBMSSQLGenerationRequest,
@@ -110,6 +112,27 @@ def dbms_generate_sql(
 
     return DBMSSQLGenerationResponse(
         test_cases=test_cases
+    )
+
+
+@app.post(
+    "/dbms/pipeline/generate",
+    response_model=DBMSPipelineGenerationResponse,
+)
+def dbms_pipeline_generate(
+    request: DBMSPipelineGenerationRequest,
+):
+    scenarios = identify_dbms_scenarios(request.requirement_document)
+    test_cases = generate_dbms_sql_tests(
+        requirement_document=request.requirement_document,
+        scenarios=scenarios,
+        dialect=request.sql_dialect,
+    )
+    return DBMSPipelineGenerationResponse(
+        requirement_document=request.requirement_document,
+        sql_dialect=request.sql_dialect,
+        scenarios=scenarios,
+        test_cases=test_cases,
     )
 
 

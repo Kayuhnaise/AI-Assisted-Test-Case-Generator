@@ -2,7 +2,7 @@
 
 **SWENG 889 — Fall I 2026**  
 **Team:** Gulnar Aldasheva, Samhitha Dwarakanath, Keya Gangadharan  
-**Project status:** November 5, 2026 — R1 and R2 components implemented; end-to-end R1–R2 integration pending
+**Project status:** November 5, 2026 — integrated R1→R2 generation and a review-gated PostgreSQL benchmark are implemented; new benchmark results have not yet been collected
 
 ## Overview
 
@@ -23,7 +23,9 @@ The system is intended to support human developers and QA engineers, not replace
 | R2 — PostgreSQL validation | Implemented and benchmarked | Execute reviewed SQL in a transaction with savepoint handling and rollback |
 | Independent R2 benchmark oracles | Implemented | Evaluate generated tests against separately specified expert checks |
 | Backend CI | Configured and reported passing | Run backend tests with a temporary PostgreSQL 17 service in GitHub Actions |
-| Integrated R1 → R2 workflow | **Pending** | Feed extracted R1 scenarios directly into PostgreSQL generation and evaluate the full pipeline |
+| Integrated R1 → R2 generation | Implemented | Extract scenarios and feed the same IDs directly into SQLite or PostgreSQL SQL generation |
+| Repeated R1 → R2 benchmark | Implemented; not yet run | Record extraction, coverage, generation, reviewed PostgreSQL validation, and independent-oracle results per stage |
+| PostgreSQL benchmark isolation | Implemented with documented limits | Run reviewed benchmark cases in disposable Docker containers, expose PostgreSQL only on localhost, and use a non-superuser role |
 
 **Repository status:** Pull request [#3](https://github.com/Kayuhnaise/AI-Assisted-Test-Case-Generator/pull/3) merged the R2 benchmark and PostgreSQL support into `main`. The older feature branches were intermediate development branches and are not required to reproduce the current code.
 
@@ -48,7 +50,7 @@ Natural-language DBMS requirements (text/Markdown)
       (ID, category, precondition, behavior,
                   expected result)
                         |
-            [Integration step pending]
+        Integrated generation API
                         |
                         v
             R2: Claude SQL generation
@@ -73,7 +75,7 @@ Natural-language DBMS requirements (text/Markdown)
           Results + independent oracle
 ```
 
-The R1 and R2 functions already exist, but a single, verified **natural-language input → R1 → R2 → PostgreSQL validation** workflow is not yet claimed. The PostgreSQL benchmark calls R2 using curated structured scenarios.
+`POST /dbms/pipeline/generate` connects document extraction to SQL generation and returns the original scenarios alongside generated test cases. It preserves scenario IDs and stops before execution so a human can review the generated SQL. The repeated benchmark script continues through expert-labeled coverage measurement and, after hash approval, PostgreSQL validation and an independent oracle. The benchmark implementation is available; no new end-to-end score is claimed until it has actually been run.
 
 ### R1: Requirement interpretation and scenario coverage
 
@@ -99,7 +101,7 @@ R2 accepts a requirements document plus structured DBMS scenarios and generates 
 
 The generation layer uses **Anthropic Claude**, with the model selectable through `CLAUDE_MODEL`. The recorded R2 evaluations used `claude-fable-5-1`. Generation includes Pydantic model validation, category and scenario-ID consistency checks, and retries for invalid structured output.
 
-SQLite and PostgreSQL execution have different implementations. The PostgreSQL validator uses transaction rollback, savepoints for expected SQL errors, query timeouts, and state-verification assertions. **Transaction rollback and a limited database role are not substitutes for a secure sandbox.** SQL must be reviewed before evaluation in a disposable, isolated database.
+SQLite and PostgreSQL execution have different implementations. The PostgreSQL validator uses transaction rollback, savepoints for expected SQL errors, query timeouts, and state-verification assertions. Benchmark execution uses a fresh Docker PostgreSQL 17 container, a localhost-only published port, a temporary database, and a role without superuser, database-creation, or role-creation privileges. The standard Docker bridge may still allow outbound network access from the container, so this is not a network-isolated or general-purpose secure SQL sandbox. Review generated SQL and never use sensitive or production data.
 
 ## Technology stack
 
@@ -133,13 +135,16 @@ AI-Assisted-Test-Case-Generator/
 │   │   ├── dbms_r2_oracle.py            # SQLite independent benchmark oracle
 │   │   ├── dbms_postgres_executor.py    # PostgreSQL execution/validation
 │   │   ├── dbms_postgres_oracle.py      # PostgreSQL independent oracle
+│   │   ├── disposable_postgres.py       # Ephemeral PostgreSQL benchmark containers
 │   │   ├── generator.py                 # Original Python test generator
 │   │   └── test_runner.py              # Original pytest runner
 │   ├── tests/
-│   │   └── fixtures/dbms_r2_benchmark.json
+│   │   ├── fixtures/dbms_r2_benchmark.json
+│   │   └── fixtures/dbms_r1_r2_supplemental.json
 │   ├── benchmark_results/              # Recorded R2 JSON results
 │   ├── evaluate_dbms_r2.py             # SQLite evaluation
 │   ├── evaluate_dbms_r2_postgres.py    # PostgreSQL review/evaluation
+│   ├── evaluate_dbms_r1_r2_postgres.py # Repeated integrated benchmark
 │   └── requirements.txt
 ├── evaluation/
 │   └── reference/                      # Original Python reference scenarios
@@ -158,9 +163,10 @@ Run FastAPI locally to access interactive documentation at `http://127.0.0.1:800
 | `GET /health` | Health check | — |
 | `POST /scenarios` | Extract scenarios from a requirement and Python source code | Original Python workflow |
 | `POST /generate` | Generate and run pytest tests from Python-oriented input | Original Python workflow; trusted local use only |
-| `POST /dbms/scenarios` | Extract structured DBMS scenarios from a requirement document | R1 operation; not automatically chained to R2 |
+| `POST /dbms/scenarios` | Extract structured DBMS scenarios from a requirement document | Standalone R1 endpoint; use the pipeline endpoint for chained SQL generation |
 | `POST /dbms/coverage` | Compare extracted DBMS scenarios to expert scenarios | Requires supplied expert and extracted scenario sets |
 | `POST /dbms/generate` | Generate SQL tests from an explicitly supplied scenario list | Currently defaults to SQLite; PostgreSQL supported in Python R2 function/benchmark |
+| `POST /dbms/pipeline/generate` | Extract scenarios and generate SQL tests in one request | Returns SQL for human review; does not execute it |
 | `POST /dbms/validate` | Validate supplied SQL tests | Current API uses the SQLite validator; PostgreSQL validation is a separate Python workflow |
 
 ### Example: R1 scenario extraction
@@ -173,7 +179,7 @@ Request to `POST /dbms/scenarios`:
 }
 ```
 
-R1 returns scenarios with identifiers, categories, preconditions, operations, and expected results. These can then be provided to `POST /dbms/generate` as a separate request. **The two endpoints are not yet combined into one verified end-to-end API route.**
+R1 returns scenarios with identifiers, categories, preconditions, operations, and expected results. Use `POST /dbms/pipeline/generate` to pass those scenarios directly to SQL generation while preserving their identifiers. The endpoint returns `"review_required": true`; it does not execute generated SQL.
 
 ## Installation and local development
 
@@ -187,10 +193,23 @@ R1 returns scenarios with identifiers, categories, preconditions, operations, an
 
 Clone and install:
 
-```powershell
+```sh
 git clone https://github.com/Kayuhnaise/AI-Assisted-Test-Case-Generator.git
 cd AI-Assisted-Test-Case-Generator
 cd backend
+```
+
+On macOS or Linux:
+
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+On Windows PowerShell:
+
+```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
@@ -225,9 +244,9 @@ From `backend/`:
 python -m pytest tests -q
 ```
 
-**Latest reported local result (November 5, 2026): 42 passed.** Some tests require a reachable PostgreSQL test service and the `DBTESTGEN_POSTGRES_URL` environment variable. A missing/stopped PostgreSQL service will cause connection-related failures; it does not imply SQL generation is broken.
+The backend suite now reports **51 passed, 1 warning (November 5, 2026)**, including the integrated pipeline and savepoint regression tests. Some PostgreSQL integration tests require a reachable PostgreSQL test service and `DBTESTGEN_POSTGRES_URL`; a missing/stopped service causes connection-related failures and does not imply SQL generation is broken.
 
-GitHub Actions starts a temporary PostgreSQL 17 service and initializes the `dbtestgen_sandbox` schema for the CI suite. The latest PR checks were reported passing after this configuration was added. No external PostgreSQL server or production credentials are required for CI.
+GitHub Actions starts a temporary PostgreSQL 17 service and initializes the `dbtestgen_sandbox` schema for those integration tests. The new benchmark evaluator starts its own disposable containers and does not use `DBTESTGEN_POSTGRES_URL`.
 
 ## Benchmark evaluation
 
@@ -258,25 +277,40 @@ Earlier Qwen-based R2 runs and intermediate Claude runs are also retained for hi
 
 1. Generate the SQL and write a `postgres_review_<timestamp>.json` file, without executing the SQL.
 2. Manually review **all** setup statements, test operations, and verification queries.
-3. Use a **disposable, isolated PostgreSQL instance with no sensitive data or production network access**.
+3. Ensure Docker is running. Evaluation creates a disposable PostgreSQL 17 container with no host mounts, a localhost-only published port, and a temporary non-superuser SQL role. The standard Docker bridge may permit outbound network access.
 4. Pass the exact reviewed file and its SHA-256 digest to the evaluation command; the script verifies the file hash before running the reviewed SQL.
-5. Examine the result JSON, then destroy the disposable database instance.
+5. Examine the result JSON; each temporary database container is removed after validation/oracle execution.
 
-Example generation command from `backend/`:
+Example generation and approved evaluation commands from `backend/`:
 
-```powershell
+```sh
 python evaluate_dbms_r2_postgres.py
+shasum -a 256 benchmark_results/postgres_review_<timestamp>.json
+python evaluate_dbms_r2_postgres.py \
+  --reviewed-file "benchmark_results/postgres_review_<timestamp>.json" \
+  --approved-sha256 "<sha256-of-reviewed-file>"
 ```
 
-After manual review and configuring `DBTESTGEN_POSTGRES_URL` for an isolated disposable database, the evaluation command takes this form:
+The integrated benchmark includes 12 existing expert-labeled cases plus four supplemental cases covering cascading deletes, tenant-scoped uniqueness, savepoint rollback, and generated identity values. The R1 matcher compares each extraction with its expert-labeled scenario; generated SQL is stored for review before any PostgreSQL execution.
 
-```powershell
-python evaluate_dbms_r2_postgres.py `
-  --reviewed-file ".\benchmark_results\postgres_review_<timestamp>.json" `
-  --approved-sha256 "<sha256-from-generation>"
+Run repeated trials from `backend/`:
+
+```sh
+python evaluate_dbms_r1_r2_postgres.py --trials 3
 ```
 
-**Do not run AI-generated SQL on a persistent project database or a system containing valuable data.** SHA-256 review gating, a limited database account, statement timeouts, and transaction rollback are useful safeguards, but they do not turn the executor into a secure arbitrary-SQL sandbox.
+The script writes a `dbms_r1_r2_review_<timestamp>.json` artifact with per-case extraction, coverage, generation, and pending-review outcomes, then prints its SHA-256 digest. Review all generated `setup_sql`, `test_sql`, and verification assertions. For every generated entry, change `stages.review.status` from `"pending"` to `"approved"` or `"rejected"`; rejected entries need a non-empty `reason` and will not be executed. Only after approving that exact edited artifact, calculate/confirm its digest and run:
+
+```sh
+shasum -a 256 benchmark_results/dbms_r1_r2_review_<timestamp>.json
+python evaluate_dbms_r1_r2_postgres.py \
+  --reviewed-file "benchmark_results/dbms_r1_r2_review_<timestamp>.json" \
+  --approved-sha256 "<sha256-of-reviewed-file>"
+```
+
+The resulting report includes per-stage outcomes and success rates, the review approval/rejection counts, R1 coverage against the 90% target, PostgreSQL validation outcomes, and independent-oracle results for expert-matched scenarios. Coverage failures count as uncovered scenarios. The benchmark is intentionally small and does not establish general model performance; independently inspect the expert labels and reported results.
+
+**Do not run AI-generated SQL on a persistent project database or a system containing valuable data.** The Docker runner limits SQL privileges and resources, limits inbound access to localhost, and destroys the container after each test/oracle run. It does not block all outbound network access. Human review and disposable execution reduce risk, but neither makes arbitrary SQL execution risk-free.
 
 ## Historical Python/pytest proof of concept
 
@@ -333,7 +367,7 @@ A passing generated test is **not** evidence of full reference-scenario coverage
 ## Limitations and responsible use
 
 - **Small datasets:** The R2 SQL evaluation covers 12 scenarios; the historical Python benchmark contains 21 reference scenarios. Neither supports broad generalization.
-- **Incomplete end-to-end evidence:** R1 scenario extraction and R2 SQL generation have been developed separately; combined accuracy remains to be measured.
+- **Incomplete end-to-end evidence:** The integrated generation and review-gated evaluation workflow is implemented, but no R1→R2 benchmark trial has yet been reported.
 - **R1 coverage target:** At least 90% coverage is a goal, not a substantiated achievement based on the R2 scores.
 - **LLM variability:** Generation can vary between runs, and model/prompt refinements complicate comparisons.
 - **Semantic risk:** Structurally valid tests can assert the wrong behavior or rely on unsupported assumptions.
@@ -342,12 +376,11 @@ A passing generated test is **not** evidence of full reference-scenario coverage
 
 ## Next steps
 
-1. **Integrate R1 and R2:** Connect extracted `DBMSScenario` objects to the SQL generator using the existing Pydantic models and preserve scenario identifiers throughout.
-2. **Test the full pipeline:** Evaluate natural-language DBMS documents through extraction, SQL generation, review, and PostgreSQL validation, measuring failures by stage.
-3. **Measure R1 coverage:** Run an expert-labeled DBMS requirement benchmark and report actual coverage relative to the 90% target.
-4. **Expand the benchmark:** Include more diverse constraints, transactions, and database behaviors with repeated trials and independent oracles.
-5. **Strengthen execution isolation:** Continue to use disposable databases and evaluate a more robust sandboxing approach before broader use.
+1. **Run the integrated benchmark:** Execute at least three reviewed trials with `evaluate_dbms_r1_r2_postgres.py --trials 3` and report stage-specific failures.
+2. **Establish R1 coverage:** Compare measured coverage on the 16 expert-labeled cases against the 90% target; review semantic matches and misses before treating the score as evidence.
+3. **Broaden and audit the benchmark:** Add more independently reviewed requirements, especially transaction isolation, concurrency, permissions, and recovery scenarios, with repeated trials and independent oracles.
+4. **Review isolation limits:** Evaluate outbound-network restrictions and stronger container policies before using the runner with higher-risk SQL; the current disposable container is not a formal security boundary.
 
 ## Project takeaway
 
-DB-TestGen demonstrates that LLM-generated database tests can achieve high **independent validity on a controlled benchmark** when generation is paired with structural validation, executable database assertions, expert-defined checks, and human review. The outstanding research and engineering question is how reliably the **complete requirement-to-SQL workflow** performs when R1 extracts scenarios automatically and R2 generates and validates their tests.
+The historical R2 results show high independent validity on a small controlled benchmark when generation is paired with structural validation, executable assertions, expert-defined checks, and human review. The integrated R1→R2 workflow is now implemented, but its reliability and R1 coverage remain unmeasured until the new benchmark is run and independently reviewed.

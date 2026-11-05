@@ -410,6 +410,9 @@ PostgreSQL-specific rules:
 - Do not use SQLite-only PRAGMA, INSERT OR REPLACE, or AUTOINCREMENT.
 - Do not create extensions, roles, databases, schemas, or use COPY/PROGRAM.
 - Use only ordinary test tables and deterministic SQL statements.
+- For a transaction scenario, test_sql may contain multiple SQL statements.
+- Keep transaction control inside a SAVEPOINT; do not COMMIT or ROLLBACK
+  the outer test transaction.
 """
     return prompt
 
