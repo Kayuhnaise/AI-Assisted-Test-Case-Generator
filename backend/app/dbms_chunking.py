@@ -181,3 +181,84 @@ def chunk_document(
             )
         )
     return chunks
+
+
+REQUIREMENT_HEADING_RE = re.compile(
+    r"^(?:SRS|FR|REQ|US)[-_]?\d+\b",
+    re.IGNORECASE,
+)
+
+
+def chunk_by_requirement(
+    document: str,
+    max_chars: int = 6000,
+    max_context_chars: int = 2000,
+) -> list[Chunk]:
+    """Create focused extraction chunks for numbered requirements.
+
+    Falls back to ordinary heading-aware chunking when the document
+    does not contain multiple numbered requirement headings.
+    """
+    sections = parse_sections(document)
+
+    requirement_sections = [
+        section
+        for section in sections
+        if section.path
+        and REQUIREMENT_HEADING_RE.match(section.path[-1])
+    ]
+
+    if len(requirement_sections) < 2:
+        return chunk_document(
+            document,
+            max_chars=max_chars,
+            max_context_chars=max_context_chars,
+        )
+
+    requirement_indexes = {
+        section.index for section in requirement_sections
+    }
+
+    shared_sections = [
+        section for section in sections
+        if section.index not in requirement_indexes
+        and (
+            _is_context_section(section)
+            or any(
+                "data requirement" in title.lower()
+                or "data validation" in title.lower()
+                or "data relationship" in title.lower()
+                for title in section.path
+            )
+        )
+    ]
+
+    context_parts = []
+    remaining = max_context_chars
+
+    for section in shared_sections:
+        if remaining <= 0:
+            break
+
+        snippet = section.text[:remaining]
+        context_parts.append(snippet)
+        remaining -= len(snippet) + 2
+
+    shared_context = "\n\n".join(context_parts)
+
+    chunks = []
+
+    for section in requirement_sections:
+        parts = split_text(section.text, max_chars)
+
+        for part_number, part in enumerate(parts, start=1):
+            chunks.append(
+                Chunk(
+                    section_path=" > ".join(section.path),
+                    text=part,
+                    context=shared_context,
+                    section_indexes=(section.index,),
+                )
+            )
+
+    return chunks

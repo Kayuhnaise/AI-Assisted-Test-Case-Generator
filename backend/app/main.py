@@ -25,6 +25,7 @@ from app.dbms_sql_generator import generate_dbms_sql_tests
 from app.dbms_sql_validator import validate_sql_tests
 from app.generator import generate_test_cases, identify_scenarios
 from app.test_runner import run_pytest
+from app.dbms_scenarios_claude import identify_dbms_scenarios_claude
 
 
 app = FastAPI(
@@ -122,7 +123,14 @@ def dbms_generate_sql(
 def dbms_pipeline_generate(
     request: DBMSPipelineGenerationRequest,
 ):
-    scenarios = identify_dbms_scenarios(request.requirement_document)
+    if request.r1_provider == "claude":
+        scenarios = identify_dbms_scenarios_claude(
+            request.requirement_document
+        )
+    else:
+        scenarios = identify_dbms_scenarios(
+            request.requirement_document
+        )
     test_cases = generate_dbms_sql_tests(
         requirement_document=request.requirement_document,
         scenarios=scenarios,

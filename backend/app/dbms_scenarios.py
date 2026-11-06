@@ -15,7 +15,11 @@ from app.prompts import (
     build_dbms_scenario_prompt,
 )
 
-from app.dbms_chunking import chunk_document, split_text
+from app.dbms_chunking import (
+    chunk_by_requirement,
+    chunk_document,
+    split_text,
+)
 
 COVERAGE_TARGET_PERCENTAGE = 90.0
 
@@ -105,7 +109,7 @@ def _extract_dbms_chunk(
 def identify_dbms_scenarios(
     requirement_document: str,
 ) -> list[DBMSScenario]:
-    chunks = chunk_document(
+    chunks = chunk_by_requirement(
         requirement_document,
         max_chars=MAX_CHUNK_CHARS,
         max_context_chars=MAX_CONTEXT_CHARS,

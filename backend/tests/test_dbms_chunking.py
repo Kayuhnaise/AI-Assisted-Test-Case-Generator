@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from app.dbms_chunking import chunk_document, parse_sections, split_text
+from app.dbms_chunking import chunk_document, parse_sections, split_text, chunk_by_requirement
 from app.models import GeneratedDBMSScenarios
 
 
@@ -66,3 +66,55 @@ def test_headings_inside_code_fences_are_not_sections():
 def test_oversized_section_is_split_into_parts():
     pieces = split_text("word " * 1000, max_chars=500)
     assert len(pieces) > 1 and all(len(p) <= 500 for p in pieces)
+
+
+def test_numbered_requirements_are_separate_chunks():
+    document = """
+# System Requirements
+
+#### SRS-001: Registration
+Users must have unique usernames.
+
+#### SRS-002: Book Addition
+Books must have unique ISBN values.
+
+#### SRS-003: Borrowing
+Available books may be borrowed.
+"""
+
+    chunks = chunk_by_requirement(document)
+
+    assert len(chunks) == 3
+
+    for chunk in chunks:
+        assert chunk.text.count("#### SRS-") == 1
+
+
+def test_shared_data_constraints_are_available_as_context():
+    document = """
+#### SRS-001: Registration
+Users must have unique usernames.
+
+#### SRS-002: Book Addition
+Books must have unique ISBN values.
+
+## Data Requirements
+### Data Validation Rules
+Usernames and ISBN values must be unique.
+"""
+
+    chunks = chunk_by_requirement(document)
+
+    assert len(chunks) == 2
+
+    for chunk in chunks:
+        assert "Usernames and ISBN values must be unique" in chunk.context
+
+
+def test_ordinary_short_document_uses_existing_behavior():
+    document = "# Requirement\nA row must persist after commit."
+
+    chunks = chunk_by_requirement(document)
+
+    assert len(chunks) == 1
+    assert chunks[0].context == ""

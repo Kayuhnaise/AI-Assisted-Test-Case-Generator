@@ -250,6 +250,7 @@ class DBMSSQLGenerationResponse(BaseModel):
 class DBMSPipelineGenerationRequest(BaseModel):
     requirement_document: str = Field(min_length=1)
     sql_dialect: Literal["sqlite", "postgresql"] = "postgresql"
+    r1_provider: Literal["ollama", "claude"] = "ollama"
 
 
 class DBMSPipelineGenerationResponse(BaseModel):
