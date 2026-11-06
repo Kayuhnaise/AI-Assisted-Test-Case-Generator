@@ -1,0 +1,89 @@
+{
+  "benchmark_id": "DBMS-R1-R2-SUPPLEMENTAL-001",
+  "cases": [
+    {
+      "id": "R2-013",
+      "category": "positive",
+      "requirement_document": "When a customer is deleted, all orders that reference that customer shall be deleted automatically.",
+      "precondition": "Customer 7 exists and has one order. The orders.customer_id foreign key uses ON DELETE CASCADE.",
+      "behavior_under_test": "Delete customer 7.",
+      "expected_result": "The customer and its referencing order are both deleted.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM customers",
+            "expected_scalar": 0
+          },
+          {
+            "query": "SELECT COUNT(*) FROM orders",
+            "expected_scalar": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-014",
+      "category": "positive",
+      "requirement_document": "Email addresses shall be unique within a tenant. The same email address may be used by users in different tenants.",
+      "precondition": "Tenant 1 contains a user with email alex@example.com. The users table enforces uniqueness on the tenant_id and email pair.",
+      "behavior_under_test": "Insert a user with email alex@example.com in tenant 2.",
+      "expected_result": "The insertion succeeds and both tenant-specific rows remain present.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM users",
+            "expected_scalar": 2
+          },
+          {
+            "query": "SELECT COUNT(*) FROM users WHERE tenant_id = 2 AND email = 'alex@example.com'",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-015",
+      "category": "edge",
+      "requirement_document": "A transaction shall support rolling back work to a savepoint without discarding earlier work in the transaction.",
+      "precondition": "The audit_log table exists and is empty.",
+      "behavior_under_test": "Insert an audit row, create a savepoint, insert a second audit row, roll back to the savepoint, and release it.",
+      "expected_result": "The first audit row remains and the second audit row is absent.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM audit_log",
+            "expected_scalar": 1
+          },
+          {
+            "query": "SELECT message FROM audit_log",
+            "expected_scalar": "before savepoint"
+          }
+        ]
+      }
+    },
+    {
+      "id": "R2-016",
+      "category": "positive",
+      "requirement_document": "The events table shall assign a unique positive identifier when an event is inserted without an explicit identifier.",
+      "precondition": "The events table uses a generated identity column for its primary key and is initially empty.",
+      "behavior_under_test": "Insert an event without specifying its identifier.",
+      "expected_result": "The row is stored with a positive generated identifier.",
+      "oracle": {
+        "expected_outcome_type": "database_state",
+        "verification_assertions": [
+          {
+            "query": "SELECT COUNT(*) FROM events",
+            "expected_scalar": 1
+          },
+          {
+            "query": "SELECT id FROM events",
+            "expected_scalar": 1
+          }
+        ]
+      }
+    }
+  ]
+}

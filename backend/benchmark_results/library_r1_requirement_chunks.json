@@ -1,0 +1,294 @@
+{
+  "SRS-001": [
+    {
+      "id": "reg_pos_001",
+      "category": "positive",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Create a new user with a valid username (3-50 characters), valid email (with unique email), password (minimum 8 characters), matching confirm password, and role (ADMIN or MEMBER)",
+      "expected_result": "User record is created in the Users table with the provided details"
+    },
+    {
+      "id": "reg_neg_001",
+      "category": "negative",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with a username that is less than 3 characters",
+      "expected_result": "Error message indicating username must be 3-50 characters"
+    },
+    {
+      "id": "reg_neg_002",
+      "category": "negative",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with a username that is more than 50 characters",
+      "expected_result": "Error message indicating username must be 3-50 characters"
+    },
+    {
+      "id": "reg_neg_003",
+      "category": "negative",
+      "precondition": "Database has a user with the same username",
+      "behavior_under_test": "Attempt to create a user with a username that already exists",
+      "expected_result": "Error message indicating username is not unique"
+    },
+    {
+      "id": "reg_neg_004",
+      "category": "negative",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with an email that has an invalid format",
+      "expected_result": "Error message indicating email format is invalid"
+    },
+    {
+      "id": "reg_neg_005",
+      "category": "negative",
+      "precondition": "Database has a user with the same email",
+      "behavior_under_test": "Attempt to create a user with an email that already exists",
+      "expected_result": "Error message indicating email is not unique"
+    },
+    {
+      "id": "reg_neg_006",
+      "category": "negative",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with a password that is less than 8 characters",
+      "expected_result": "Error message indicating password must be at least 8 characters"
+    },
+    {
+      "id": "reg_neg_007",
+      "category": "negative",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with a confirm password that does not match the password",
+      "expected_result": "Error message indicating confirm password does not match"
+    },
+    {
+      "id": "reg_neg_008",
+      "category": "negative",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with an invalid role (e.g., \"GUEST\")",
+      "expected_result": "Error message indicating role must be ADMIN or MEMBER"
+    },
+    {
+      "id": "reg_bnd_001",
+      "category": "boundary",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with a username of exactly 3 characters",
+      "expected_result": "User record is created in the Users table with the provided details"
+    },
+    {
+      "id": "reg_bnd_002",
+      "category": "boundary",
+      "precondition": "Database is empty",
+      "behavior_under_test": "Attempt to create a user with a username of exactly 50 characters",
+      "expected_result": "User record is created in the Users table with the provided details"
+    }
+  ],
+  "SRS-005": [
+    {
+      "id": "srs005_pos_1",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with title 'Test Book', author 'Test Author', total copies=1, available copies=1",
+      "expected_result": "Book is added to catalog with the provided details and a new book ID"
+    },
+    {
+      "id": "srs005_neg_1",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with total copies=0",
+      "expected_result": "Error message: 'Total copies must be greater than 0'"
+    },
+    {
+      "id": "srs005_neg_2",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with available copies=-1",
+      "expected_result": "Error message: 'Available copies must be non-negative'"
+    },
+    {
+      "id": "srs005_neg_3",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with total copies=1, available copies=2",
+      "expected_result": "Error message: 'Available copies must be less than or equal to total copies'"
+    },
+    {
+      "id": "srs005_neg_4",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN and there exists a book with ISBN '1234567890'",
+      "behavior_under_test": "Add a book with ISBN '1234567890'",
+      "expected_result": "Error message: 'ISBN must be unique'"
+    },
+    {
+      "id": "srs005_bound_1",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with total copies=1",
+      "expected_result": "Book is added with total copies=1"
+    },
+    {
+      "id": "srs005_bound_2",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with available copies=0",
+      "expected_result": "Book is added with available copies=0"
+    },
+    {
+      "id": "srs005_bound_3",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book with total copies=1 and available copies=1",
+      "expected_result": "Book is added with total copies=1 and available copies=1"
+    },
+    {
+      "id": "srs005_edge_1",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Add a book without providing ISBN",
+      "expected_result": "Book is added without ISBN"
+    }
+  ],
+  "SRS-008": [
+    {
+      "id": "auth_neg",
+      "category": "negative",
+      "precondition": "User is authenticated but not as ADMIN",
+      "behavior_under_test": "Verify user authorization",
+      "expected_result": "Error message indicating unauthorized user"
+    },
+    {
+      "id": "auth_pos",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN",
+      "behavior_under_test": "Verify user authorization",
+      "expected_result": "Successful authorization"
+    },
+    {
+      "id": "isbn_invalid_format",
+      "category": "negative",
+      "precondition": "Book exists, user is authenticated as ADMIN",
+      "behavior_under_test": "Validate updated data (ISBN format)",
+      "expected_result": "Error message for invalid ISBN format"
+    },
+    {
+      "id": "isbn_duplicate",
+      "category": "negative",
+      "precondition": "Book exists, user is authenticated as ADMIN, and there is another book with the same ISBN",
+      "behavior_under_test": "Check constraints (unique constraint on ISBN)",
+      "expected_result": "Error message for duplicate ISBN"
+    },
+    {
+      "id": "copies_negative",
+      "category": "negative",
+      "precondition": "Book exists, user is authenticated as ADMIN",
+      "behavior_under_test": "Validate updated data (book copies non-negative)",
+      "expected_result": "Error message for negative book copies"
+    },
+    {
+      "id": "copies_zero",
+      "category": "positive",
+      "precondition": "Book exists, user is authenticated as ADMIN, and updated book copies = 0",
+      "behavior_under_test": "Update book record",
+      "expected_result": "Book record updated with copies = 0"
+    },
+    {
+      "id": "copies_positive",
+      "category": "positive",
+      "precondition": "Book exists, user is authenticated as ADMIN, and updated book copies = 1",
+      "behavior_under_test": "Update book record",
+      "expected_result": "Book record updated with copies = 1"
+    },
+    {
+      "id": "log_success",
+      "category": "positive",
+      "precondition": "Book exists, user is authenticated as ADMIN, and updated book data meets validation rules",
+      "behavior_under_test": "Log changes",
+      "expected_result": "Audit record created for the book update"
+    }
+  ],
+  "SRS-009": [
+    {
+      "id": "srs009_pos_1",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN, and the book has no active borrowings (i.e., no borrowing records exist for the book)",
+      "behavior_under_test": "Administrator deletes a book using the provided Book ID and a valid confirmation flag",
+      "expected_result": "The book is removed from the catalog, and a deletion log entry is created."
+    },
+    {
+      "id": "srs009_neg_1",
+      "category": "negative",
+      "precondition": "User is not authenticated as ADMIN (e.g., user has a role other than ADMIN)",
+      "behavior_under_test": "Administrator attempts to delete a book using the provided Book ID and a valid confirmation flag",
+      "expected_result": "An error message indicating unauthorized user."
+    },
+    {
+      "id": "srs009_neg_2",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN, and the book has at least one active borrowing (i.e., there exists a borrowing record for the book that is active)",
+      "behavior_under_test": "Administrator attempts to delete the book using the provided Book ID and a valid confirmation flag",
+      "expected_result": "An error message indicating that the book has active borrowings."
+    }
+  ],
+  "SRS-010": [
+    {
+      "id": "srs010_pos_01",
+      "category": "positive",
+      "precondition": "User is authenticated as MEMBER, book is available (at least one copy remains)",
+      "behavior_under_test": "Create borrowing record and update book availability",
+      "expected_result": "Borrowing confirmation message is returned, the book's availability is updated to indicate it is borrowed, and the due date is set to 30 days from the current date"
+    },
+    {
+      "id": "srs010_neg_01",
+      "category": "negative",
+      "precondition": "User is not authenticated as MEMBER",
+      "behavior_under_test": "Verify user authorization",
+      "expected_result": "Error message indicating user is not authorized"
+    },
+    {
+      "id": "srs010_neg_02",
+      "category": "negative",
+      "precondition": "Book is not available (e.g., no copies left or already borrowed)",
+      "behavior_under_test": "Check book availability",
+      "expected_result": "Error message indicating book is not available"
+    },
+    {
+      "id": "srs010_neg_03",
+      "category": "negative",
+      "precondition": "User has reached the maximum borrowing limit (as defined by the system)",
+      "behavior_under_test": "Check user borrowing limits",
+      "expected_result": "Error message indicating user has reached borrowing limit"
+    }
+  ],
+  "SRS-013": [
+    {
+      "id": "srs013_01",
+      "category": "positive",
+      "precondition": "User is authenticated, borrowing record exists and is valid (not returned), return date is on time",
+      "behavior_under_test": "Return book with on-time return",
+      "expected_result": "Book status updated to returned, book availability increased, no fines, return confirmation"
+    },
+    {
+      "id": "srs013_02",
+      "category": "positive",
+      "precondition": "User is authenticated, borrowing record exists and is valid (not returned), return date is late",
+      "behavior_under_test": "Return book with late return",
+      "expected_result": "Book status updated to returned, book availability increased, fines calculated, return confirmation"
+    },
+    {
+      "id": "srs013_03",
+      "category": "negative",
+      "precondition": "User is not authenticated",
+      "behavior_under_test": "Return book",
+      "expected_result": "Error message: User not authenticated"
+    },
+    {
+      "id": "srs013_04",
+      "category": "negative",
+      "precondition": "Borrowing record does not exist",
+      "behavior_under_test": "Return book",
+      "expected_result": "Error message: Borrowing record does not exist"
+    },
+    {
+      "id": "srs013_05",
+      "category": "negative",
+      "precondition": "Borrowing record exists but is already returned",
+      "behavior_under_test": "Return book",
+      "expected_result": "Error message: Borrowing record already returned"
+    }
+  ]
+}

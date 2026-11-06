@@ -187,7 +187,14 @@ For each scenario, provide all of these fields:
 - behavior_under_test: the DBMS operation or behavior being exercised
 - expected_result: the observable outcome required by the document
 
-Split independently verifiable behaviors into separate scenarios. Include
+Split independently verifiable behaviors into separate scenarios, but also
+  include at least one complete end-to-end scenario for each multi-step
+  workflow described in the requirement. The end-to-end scenario must verify
+  all explicitly required processing steps and postconditions together,
+  including record creation or modification, related database updates,
+  logging, and confirmation outputs where applicable. Do not replace
+  individual scenarios with the end-to-end scenario or invent unspecified
+  behavior. Include
 explicit limits and meaningful values immediately below or above them.
 Consider only scenarios supported by the document; do not invent DBMS
 semantics or expected results.
@@ -410,6 +417,9 @@ PostgreSQL-specific rules:
 - Do not use SQLite-only PRAGMA, INSERT OR REPLACE, or AUTOINCREMENT.
 - Do not create extensions, roles, databases, schemas, or use COPY/PROGRAM.
 - Use only ordinary test tables and deterministic SQL statements.
+- For a transaction scenario, test_sql may contain multiple SQL statements.
+- Keep transaction control inside a SAVEPOINT; do not COMMIT or ROLLBACK
+  the outer test transaction.
 """
     return prompt
 

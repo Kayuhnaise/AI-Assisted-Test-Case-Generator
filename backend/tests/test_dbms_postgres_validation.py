@@ -153,6 +153,55 @@ def test_postgres_detects_incorrect_expected_state():
     assert not result.assertion_passed
 
 
+def test_postgres_savepoint_rollback_keeps_prior_transaction_work():
+    test_case = DBMSSQLTestCase.model_validate({
+        "id": "PG-TX-001",
+        "scenario_id": "PG-TX-SC-001",
+        "title": "Roll back only work after a savepoint",
+        "category": "edge",
+        "sql_dialect": "postgresql",
+        "preconditions": [],
+        "constraints": [],
+        "setup_sql": [
+            "CREATE TABLE audit_log ("
+            "id INTEGER PRIMARY KEY, message TEXT NOT NULL)"
+        ],
+        "test_sql": (
+            "INSERT INTO audit_log VALUES (1, 'before savepoint'); "
+            "SAVEPOINT transaction_work; "
+            "INSERT INTO audit_log VALUES (2, 'after savepoint'); "
+            "ROLLBACK TO SAVEPOINT transaction_work; "
+            "RELEASE SAVEPOINT transaction_work"
+        ),
+        "verification_assertions": [
+            {
+                "query": "SELECT COUNT(*) FROM audit_log",
+                "expected_scalar": 1,
+            },
+            {
+                "query": "SELECT message FROM audit_log",
+                "expected_scalar": "before savepoint",
+            },
+        ],
+        "expected_outcome": {
+            "outcome_type": "database_state",
+            "assertion_description": (
+                "Work before the savepoint remains and later work is rolled back"
+            ),
+        },
+    })
+
+    result = validate_postgres_sql_test(
+        test_case,
+        trusted_sql=True,
+    )
+
+    assert result.status == "passed"
+    assert result.setup_successful
+    assert result.execution_successful
+    assert result.assertion_passed
+
+
 def test_postgres_rejects_sqlite_dialect():
     test_case = DBMSSQLTestCase.model_validate({
         "id": "PG-005",
@@ -176,4 +225,3 @@ def test_postgres_rejects_sqlite_dialect():
             test_case,
             trusted_sql=True,
         )
-

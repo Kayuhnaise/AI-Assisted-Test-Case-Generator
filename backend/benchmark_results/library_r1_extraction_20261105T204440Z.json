@@ -1,0 +1,59 @@
+{
+  "benchmark_id": "LMS-R1-EXTERNAL-001",
+  "source_document": "tests\\fixtures\\external\\library_management_r1_input.md",
+  "extraction_model": "local_ollama",
+  "extracted_at_utc": "20261105T204440Z",
+  "reference_scenario_count": 19,
+  "extracted_scenario_count": 7,
+  "scenarios": [
+    {
+      "id": "SRS-001-POS",
+      "category": "positive",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a username of 3 characters, a valid email, a password of 8 characters, and role 'ADMIN'",
+      "expected_result": "User is created with a user ID"
+    },
+    {
+      "id": "SRS-001-NEG-PASS_LEN",
+      "category": "negative",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a password of 7 characters",
+      "expected_result": "Error message: 'Password must be at least 8 characters'"
+    },
+    {
+      "id": "SRS-001-BOUND-USERNAME_MIN",
+      "category": "boundary",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a username of exactly 3 characters (and unique)",
+      "expected_result": "User is created"
+    },
+    {
+      "id": "SRS-001-BOUND-USERNAME_MAX",
+      "category": "boundary",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a username of exactly 50 characters (and unique)",
+      "expected_result": "User is created"
+    },
+    {
+      "id": "SRS-001-NEG-USERNAME_EXISTS",
+      "category": "negative",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a username that already exists in the system",
+      "expected_result": "Error message: 'Username already exists'"
+    },
+    {
+      "id": "SRS-001-EDGE-USERNAME_MIN",
+      "category": "edge",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a username of 2 characters",
+      "expected_result": "Error message: 'Username must be at least 3 characters'"
+    },
+    {
+      "id": "SRS-001-EDGE-USERNAME_MAX",
+      "category": "edge",
+      "precondition": "None",
+      "behavior_under_test": "Register a user with a username of 51 characters",
+      "expected_result": "Error message: 'Username must be at most 50 characters'"
+    }
+  ]
+}

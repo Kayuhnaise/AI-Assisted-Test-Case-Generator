@@ -5,12 +5,20 @@ Do not run generated SQL against a non-disposable database.
 import argparse
 import hashlib
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+
+import anthropic
+import httpx
+import ollama
+import psycopg
+from pydantic import ValidationError
 
 from app.dbms_sql_generator import CLAUDE_MODEL, generate_dbms_sql_tests
 from app.dbms_postgres_executor import validate_postgres_sql_test
 from app.dbms_postgres_oracle import evaluate_postgres_oracle
+from app.disposable_postgres import disposable_postgres
 from app.models import DBMSScenario, DBMSSQLTestCase
 
 ROOT = Path(__file__).resolve().parent
@@ -52,7 +60,13 @@ def generate():
             tests = generate_dbms_sql_tests(case["requirement_document"], [scenario], dialect="postgresql")
             entry["generated_test"] = tests[0].model_dump(mode="json")
             entry["generation_successful"] = True
-        except Exception as exc:
+        except (
+            anthropic.APIError,
+            httpx.HTTPError,
+            TimeoutError,
+            ValidationError,
+            ValueError,
+        ) as exc:
             entry["generation_successful"] = False
             entry["error"] = f"{type(exc).__name__}: {exc}"
         results.append(entry)
@@ -60,6 +74,7 @@ def generate():
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     path = OUTPUT / f"postgres_review_{timestamp}.json"
     path.write_text(json.dumps({"model": CLAUDE_MODEL, "benchmark_id": benchmark["benchmark_id"],
+                                "benchmark_sha256": digest(BENCHMARK),
                                 "results": results}, indent=2), encoding="utf-8")
     print(f"Review ALL setup_sql, test_sql and verification_assertions before executing: {path}")
     print(f"SHA256: {digest(path)}")
@@ -68,10 +83,12 @@ def generate():
 def evaluate(path, approved_hash):
     if digest(path).lower() != approved_hash.lower():
         raise SystemExit("Review-file SHA256 mismatch; review the exact file again")
-    if not __import__('os').getenv('DBTESTGEN_POSTGRES_URL'):
-        raise SystemExit("DBTESTGEN_POSTGRES_URL must point to a disposable PostgreSQL instance")
     benchmark = load_benchmark()
     reviewed = json.loads(path.read_text(encoding="utf-8"))
+    if reviewed.get("benchmark_sha256") != digest(BENCHMARK):
+        raise SystemExit(
+            "Benchmark fixture changed since the review file was generated"
+        )
     by_id = {case["id"]: case for case in benchmark["cases"]}
     results = []
     for entry in reviewed["results"]:
@@ -84,8 +101,18 @@ def evaluate(path, approved_hash):
                 raise ValueError("Invalid reviewed test dialect or scenario ID")
             oracle = by_id[entry["scenario_id"]]["oracle"]
             try:
-                validation = validate_postgres_sql_test(case, trusted_sql=True)
-                independent = evaluate_postgres_oracle(case, oracle)
+                with disposable_postgres() as database_url:
+                    validation = validate_postgres_sql_test(
+                        case,
+                        trusted_sql=True,
+                        database_url=database_url,
+                    )
+                with disposable_postgres() as database_url:
+                    independent = evaluate_postgres_oracle(
+                        case,
+                        oracle,
+                        database_url=database_url,
+                    )
                 expected = case.expected_outcome
                 result.update({"validation_status": validation.status,
                                "validation_errors": validation.errors,
@@ -95,7 +122,17 @@ def evaluate(path, approved_hash):
                                        oracle["expected_error"].lower() in expected.expected_error.lower())),
                                "independent_oracle_passed": independent["passed"],
                                "independent_oracle_result": independent})
-            except Exception as exc:
+            except (
+                anthropic.APIError,
+                httpx.HTTPError,
+                ollama.ResponseError,
+                OSError,
+                psycopg.Error,
+                RuntimeError,
+                subprocess.TimeoutExpired,
+                ValidationError,
+                ValueError,
+            ) as exc:
                 result["error"] = f"{type(exc).__name__}: {exc}"
         results.append(result)
         print(result["scenario_id"], result.get("validation_status", "error"),

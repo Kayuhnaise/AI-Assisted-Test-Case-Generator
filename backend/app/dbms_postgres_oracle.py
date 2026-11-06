@@ -2,15 +2,24 @@
 
 Only use on reviewed SQL in a disposable PostgreSQL environment.
 """
+from typing import Any
+
 import psycopg
+
 from app.dbms_postgres_executor import postgres_test_connection
+from app.models import DBMSSQLTestCase
 
 
-def evaluate_postgres_oracle(test_case, oracle):
+def evaluate_postgres_oracle(
+    test_case: DBMSSQLTestCase,
+    oracle: dict[str, Any],
+    *,
+    database_url: str | None = None,
+) -> dict[str, Any]:
     result = {"passed": False, "operation_matched": False,
               "assertions_passed": False, "assertion_results": [], "errors": []}
     try:
-        with postgres_test_connection() as conn:
+        with postgres_test_connection(database_url) as conn:
             with conn.cursor() as cur:
                 for statement in test_case.setup_sql:
                     cur.execute(statement, prepare=False)

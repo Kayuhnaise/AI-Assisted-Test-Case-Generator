@@ -247,6 +247,20 @@ class DBMSSQLGenerationResponse(BaseModel):
     test_cases: list[DBMSSQLTestCase]
 
 
+class DBMSPipelineGenerationRequest(BaseModel):
+    requirement_document: str = Field(min_length=1)
+    sql_dialect: Literal["sqlite", "postgresql"] = "postgresql"
+    r1_provider: Literal["ollama", "claude"] = "ollama"
+
+
+class DBMSPipelineGenerationResponse(BaseModel):
+    requirement_document: str
+    sql_dialect: Literal["sqlite", "postgresql"]
+    scenarios: list[DBMSScenario]
+    test_cases: list[DBMSSQLTestCase]
+    review_required: Literal[True] = True
+
+
 class DBMSSQLValidationRequest(BaseModel):
     test_cases: list[DBMSSQLTestCase] = Field(min_length=1)
 

@@ -1,0 +1,4 @@
+{
+  "requirement_document": "\nREQ-DEMO-001: Book Registration\n\nThe system shall allow an administrator to register a book in\nthe library catalog.\n\nEach book must have:\n- A unique integer book ID.\n- A nonempty title.\n- A nonempty author.\n- A unique ISBN.\n- A total_copies value greater than zero.\n- An available_copies value between zero and total_copies.\n\nThe system shall reject registrations that violate these constraints.\nSuccessful registrations shall create a book record.\n",
+  "sql_dialect": "postgresql"
+}

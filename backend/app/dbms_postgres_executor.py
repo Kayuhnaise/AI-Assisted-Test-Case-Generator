@@ -10,10 +10,10 @@ from app.models import DBMSSQLTestCase, DBMSSQLValidationResult
 
 
 @contextmanager
-def postgres_test_connection():
+def postgres_test_connection(database_url: str | None = None):
     """Provide a PostgreSQL connection that always rolls back."""
 
-    database_url = os.getenv("DBTESTGEN_POSTGRES_URL")
+    database_url = database_url or os.getenv("DBTESTGEN_POSTGRES_URL")
 
     if not database_url:
         raise RuntimeError(
@@ -45,6 +45,7 @@ def validate_postgres_sql_test(
     test_case: DBMSSQLTestCase,
     *,
     trusted_sql: bool = False,
+    database_url: str | None = None,
 ) -> DBMSSQLValidationResult:
     """Validate a trusted SQL test in a rolled-back transaction.
 
@@ -109,7 +110,7 @@ def validate_postgres_sql_test(
         return build_result("error")
 
     try:
-        with postgres_test_connection() as connection:
+        with postgres_test_connection(database_url) as connection:
             with connection.cursor() as cursor:
 
                 # 1. Establish preconditions.
@@ -122,7 +123,10 @@ def validate_postgres_sql_test(
                 cursor.execute("SAVEPOINT test_operation")
 
                 try:
-                    cursor.execute(test_case.test_sql)
+                    cursor.execute(
+                        test_case.test_sql,
+                        prepare=False,
+                    )
                     execution_successful = True
 
                     if expected.outcome_type == "error":

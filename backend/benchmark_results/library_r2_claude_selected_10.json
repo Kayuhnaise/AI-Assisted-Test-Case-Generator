@@ -1,0 +1,72 @@
+[
+  {
+    "id": "SRS-001-dbms_1",
+    "category": "positive",
+    "precondition": "Users table has no user with the chosen username or email. Valid inputs are ready: username of 3-50 characters, valid email, password of at least 8 characters, matching confirm password, role MEMBER.",
+    "behavior_under_test": "Register a new user with all valid inputs and role MEMBER",
+    "expected_result": "A new user record is created. A success message containing the user ID is returned, and the user is redirected to the login page."
+  },
+  {
+    "id": "SRS-001-dbms_9",
+    "category": "negative",
+    "precondition": "A user with username 'alice' already exists.",
+    "behavior_under_test": "Register a new user with the duplicate username 'alice' and a different, unused email",
+    "expected_result": "Registration is rejected with an error message about username uniqueness. No second user record is created."
+  },
+  {
+    "id": "SRS-005-dbms_1",
+    "category": "positive",
+    "precondition": "User is authenticated as ADMIN; no book exists with the ISBN to be used.",
+    "behavior_under_test": "Add a book with all fields valid (title, author, unique ISBN, description, total copies > 0, available copies between 0 and total copies).",
+    "expected_result": "Book record is created and added to the catalog; a creation confirmation and the new book ID are returned."
+  },
+  {
+    "id": "SRS-005-dbms_5",
+    "category": "negative",
+    "precondition": "User is authenticated as ADMIN; a book with ISBN X already exists in the catalog.",
+    "behavior_under_test": "Add a new book with ISBN X (duplicate).",
+    "expected_result": "Creation is rejected with an error message for the uniqueness violation; no new book record is created."
+  },
+  {
+    "id": "SRS-005-dbms_6",
+    "category": "negative",
+    "precondition": "User is authenticated as ADMIN.",
+    "behavior_under_test": "Add a book with missing title.",
+    "expected_result": "Validation fails with an error message; no book record is created."
+  },
+  {
+    "id": "SRS-005-dbms_17",
+    "category": "boundary",
+    "precondition": "User is authenticated as ADMIN.",
+    "behavior_under_test": "Add a book with total copies = 1 (minimum valid) and available copies = 1.",
+    "expected_result": "Book is created successfully with confirmation and new book ID."
+  },
+  {
+    "id": "SRS-008-dbms_7",
+    "category": "negative",
+    "precondition": "User is authenticated as ADMIN. A book exists with ISBN A. Another book exists with ISBN B.",
+    "behavior_under_test": "Update book A's ISBN to the value of ISBN B (unique constraint check).",
+    "expected_result": "The update is rejected due to the ISBN uniqueness violation, an error message is returned, and book A retains its original ISBN."
+  },
+  {
+    "id": "SRS-009-dbms_5",
+    "category": "negative",
+    "precondition": "User is authenticated as ADMIN. The book has at least one active borrowing.",
+    "behavior_under_test": "Attempt to delete a book that has active borrowings, with the confirmation flag set to confirm.",
+    "expected_result": "The deletion is rejected with an error message about the constraint, and the book record and its borrowings remain unchanged."
+  },
+  {
+    "id": "SRS-010-dbms_4",
+    "category": "boundary",
+    "precondition": "A book has exactly 1 available copy. A MEMBER is authenticated and within the borrowing limit.",
+    "behavior_under_test": "Borrow the last available copy of the book.",
+    "expected_result": "The borrowing succeeds. The book's available copies become 0, which is a valid non-negative value. A borrowing record is created."
+  },
+  {
+    "id": "SRS-013-dbms_4",
+    "category": "positive",
+    "precondition": "A valid borrowing record exists for a book with a known number of available copies",
+    "behavior_under_test": "Update book availability on successful return",
+    "expected_result": "The book's availability is updated to reflect the returned copy (postcondition: availability updated), and the copies value remains a non-negative integer"
+  }
+]

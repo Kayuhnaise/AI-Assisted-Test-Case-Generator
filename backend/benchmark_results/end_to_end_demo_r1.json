@@ -1,0 +1,72 @@
+[
+  {
+    "id": "scen-1",
+    "category": "positive",
+    "precondition": "The database is empty",
+    "behavior_under_test": "Register a book with a unique integer book ID, nonempty title, nonempty author, unique ISBN, total_copies > 0, and available_copies in [0, total_copies]",
+    "expected_result": "The system creates a book record in the catalog"
+  },
+  {
+    "id": "scen-2",
+    "category": "negative",
+    "precondition": "The database contains a book with the same book ID as the one being registered",
+    "behavior_under_test": "Register a book with a book ID that already exists in the database",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-3",
+    "category": "negative",
+    "precondition": "The registration request has an empty title field",
+    "behavior_under_test": "Register a book with an empty title",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-4",
+    "category": "negative",
+    "precondition": "The registration request has an empty author field",
+    "behavior_under_test": "Register a book with an empty author",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-5",
+    "category": "negative",
+    "precondition": "The database contains a book with the same ISBN as the one being registered",
+    "behavior_under_test": "Register a book with an ISBN that already exists in the database",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-6",
+    "category": "negative",
+    "precondition": "The registration request has total_copies <= 0",
+    "behavior_under_test": "Register a book with total_copies <= 0",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-7",
+    "category": "negative",
+    "precondition": "The registration request has available_copies < 0",
+    "behavior_under_test": "Register a book with available_copies < 0",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-8",
+    "category": "negative",
+    "precondition": "The registration request has available_copies > total_copies",
+    "behavior_under_test": "Register a book with available_copies > total_copies",
+    "expected_result": "The system rejects the registration"
+  },
+  {
+    "id": "scen-9",
+    "category": "boundary",
+    "precondition": "The database is empty and the registration request has available_copies = 0 and total_copies > 0",
+    "behavior_under_test": "Register a book with available_copies = 0",
+    "expected_result": "The system creates a book record in the catalog"
+  },
+  {
+    "id": "scen-10",
+    "category": "boundary",
+    "precondition": "The database is empty and the registration request has available_copies = total_copies and total_copies > 0",
+    "behavior_under_test": "Register a book with available_copies = total_copies",
+    "expected_result": "The system creates a book record in the catalog"
+  }
+]

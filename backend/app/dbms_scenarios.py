@@ -1,5 +1,5 @@
 import ollama
-
+from pydantic import BaseModel, Field
 from app.generator import MODEL_NAME
 from app.models import (
     DBMSCoverageMatch,
@@ -15,11 +15,41 @@ from app.prompts import (
     build_dbms_scenario_prompt,
 )
 
+from app.dbms_chunking import (
+    chunk_by_requirement,
+    chunk_document,
+    split_text,
+)
 
 COVERAGE_TARGET_PERCENTAGE = 90.0
 
+MAX_CHUNK_CHARS = 6000
+MAX_CONTEXT_CHARS = 2000
+MAX_SPLIT_DEPTH = 3
+MIN_SPLIT_CHARS = 200
 
-def identify_dbms_scenarios(requirement_document: str) -> list[DBMSScenario]:
+
+class DBMSChunkResponse(BaseModel):
+    scenarios: list[DBMSScenario] = Field(default_factory=list)
+
+
+
+def _extract_dbms_chunk(
+    text: str,
+    context: str = "",
+    depth: int = 0,
+) -> list[DBMSScenario]:
+    """Extract scenarios, splitting and retrying truncated responses."""
+    document = text
+
+    if context:
+        document = (
+            "Shared document context:\n"
+            f"{context}\n\n"
+            "Requirements to analyze:\n"
+            f"{text}"
+        )
+
     response = ollama.chat(
         model=MODEL_NAME,
         messages=[
@@ -29,20 +59,150 @@ def identify_dbms_scenarios(requirement_document: str) -> list[DBMSScenario]:
             },
             {
                 "role": "user",
-                "content": build_dbms_scenario_prompt(requirement_document),
+                "content": build_dbms_scenario_prompt(document),
             },
         ],
-        format=GeneratedDBMSScenarios.model_json_schema(),
+        format=DBMSChunkResponse.model_json_schema(),
         options={"temperature": 0.2},
     )
-    generated = GeneratedDBMSScenarios.model_validate_json(
+
+    if getattr(response, "done_reason", None) == "length":
+        if depth >= MAX_SPLIT_DEPTH or len(text) < 400:
+            raise ValueError(
+                "DBMS scenario extraction remained truncated "
+                "after splitting and retrying"
+            )
+
+        smaller_chunks = split_text(
+            text,
+            max(len(text) // 2, MIN_SPLIT_CHARS),
+        )
+
+        # Avoid retrying the same unsplittable input.
+        if (
+            len(smaller_chunks) < 2
+            or any(part == text for part in smaller_chunks)
+        ):
+            raise ValueError(
+                "DBMS scenario extraction cannot be split further"
+            )
+
+        scenarios = []
+
+        for part in smaller_chunks:
+            scenarios.extend(
+                _extract_dbms_chunk(
+                    text=part,
+                    context=context,
+                    depth=depth + 1,
+                )
+            )
+
+        return scenarios
+
+    result = DBMSChunkResponse.model_validate_json(
         response.message.content
     )
-    scenario_ids = [scenario.id for scenario in generated.scenarios]
-    if len(set(scenario_ids)) != len(scenario_ids):
-        raise ValueError("Identified DBMS scenario IDs must be unique")
-    return generated.scenarios
+    return result.scenarios
 
+
+def identify_dbms_scenarios(
+    requirement_document: str,
+) -> list[DBMSScenario]:
+    chunks = chunk_by_requirement(
+        requirement_document,
+        max_chars=MAX_CHUNK_CHARS,
+        max_context_chars=MAX_CONTEXT_CHARS,
+    )
+
+    if not chunks:
+        raise ValueError("Requirement document cannot be empty")
+
+    # Preserve the existing behavior for short documents.
+    if len(chunks) == 1 and not chunks[0].context:
+        response = ollama.chat(
+            model=MODEL_NAME,
+            messages=[
+                {
+                    "role": "system",
+                    "content": DBMS_SCENARIO_SYSTEM_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": build_dbms_scenario_prompt(
+                        requirement_document
+                    ),
+                },
+            ],
+            format=GeneratedDBMSScenarios.model_json_schema(),
+            options={"temperature": 0.2},
+        )
+
+        if getattr(response, "done_reason", None) == "length":
+            recovered = _extract_dbms_chunk(
+                text=requirement_document,
+            )
+
+            if not recovered:
+                raise ValueError(
+                    "No DBMS test scenarios were identified"
+                )
+
+            recovered_ids = [scenario.id for scenario in recovered]
+
+            if len(set(recovered_ids)) != len(recovered_ids):
+                recovered = [
+                    scenario.model_copy(update={"id": f"dbms_{i}"})
+                    for i, scenario in enumerate(recovered, start=1)
+                ]
+
+            return recovered
+
+        generated = GeneratedDBMSScenarios.model_validate_json(
+            response.message.content
+        )
+
+        scenario_ids = [
+            scenario.id for scenario in generated.scenarios
+        ]
+        if len(set(scenario_ids)) != len(scenario_ids):
+            raise ValueError(
+                "Identified DBMS scenario IDs must be unique"
+            )
+
+        return generated.scenarios
+
+    # Extract scenarios independently from longer documents.
+    collected = []
+
+    for chunk in chunks:
+        scenarios = _extract_dbms_chunk(
+            text=chunk.text,
+            context=chunk.context,
+        )
+        collected.extend(scenarios)
+
+    # Deduplicate scenarios across overlapping document chunks.
+    unique = {}
+
+    for scenario in collected:
+        key = (
+            " ".join(scenario.precondition.lower().split()),
+            " ".join(scenario.behavior_under_test.lower().split()),
+            " ".join(scenario.expected_result.lower().split()),
+        )
+        unique.setdefault(key, scenario)
+
+    if not unique:
+        raise ValueError(
+            "No DBMS test scenarios were identified"
+        )
+
+    # Assign unique IDs after combining chunk results.
+    return [
+        scenario.model_copy(update={"id": f"dbms_{index}"})
+        for index, scenario in enumerate(unique.values(), start=1)
+    ]
 
 def evaluate_dbms_scenario_coverage(
     expert_scenarios: list[DBMSScenario],

@@ -1,0 +1,159 @@
+{
+  "benchmark_id": "LMS-R1-EXTERNAL-001",
+  "source_document": "library_management_r1_input.md",
+  "description": "Manually authored reference scenarios for R1 extraction evaluation",
+  "scenarios": [
+    {
+      "id": "REF-001",
+      "requirement_id": "SRS-001",
+      "category": "positive",
+      "precondition": "The username and email are not already registered.",
+      "behavior_under_test": "Register a user with valid username, email, password, matching confirmation, and role.",
+      "expected_result": "A new user record is created and a success message containing the user ID is returned."
+    },
+    {
+      "id": "REF-002",
+      "requirement_id": "SRS-001",
+      "category": "negative",
+      "precondition": "A user with the submitted username already exists.",
+      "behavior_under_test": "Attempt to register another user with the same username.",
+      "expected_result": "Registration is rejected with a validation error."
+    },
+    {
+      "id": "REF-003",
+      "requirement_id": "SRS-001",
+      "category": "negative",
+      "precondition": "A user with the submitted email already exists.",
+      "behavior_under_test": "Attempt to register another user with the same email.",
+      "expected_result": "Registration is rejected with a validation error."
+    },
+    {
+      "id": "REF-004",
+      "requirement_id": "SRS-001",
+      "category": "boundary",
+      "precondition": "The remaining registration fields are valid.",
+      "behavior_under_test": "Attempt to register with a username shorter than 3 characters.",
+      "expected_result": "Registration is rejected with a validation error."
+    },
+    {
+      "id": "REF-005",
+      "requirement_id": "SRS-001",
+      "category": "boundary",
+      "precondition": "The remaining registration fields are valid.",
+      "behavior_under_test": "Attempt to register with a password shorter than 8 characters.",
+      "expected_result": "Registration is rejected with a validation error."
+    },
+    {
+      "id": "REF-006",
+      "requirement_id": "SRS-005",
+      "category": "positive",
+      "precondition": "The user is authenticated as ADMIN. The book data is valid.",
+      "behavior_under_test": "Add a book with required title and author, positive total copies, and available copies within the allowed range.",
+      "expected_result": "The book is created in the catalog and a new book ID is returned."
+    },
+    {
+      "id": "REF-007",
+      "requirement_id": "SRS-005",
+      "category": "negative",
+      "precondition": "The user is ADMIN and another book already has the submitted ISBN.",
+      "behavior_under_test": "Attempt to add a book with the duplicate ISBN.",
+      "expected_result": "Book creation is rejected with a validation error."
+    },
+    {
+      "id": "REF-008",
+      "requirement_id": "SRS-005",
+      "category": "negative",
+      "precondition": "The user is authenticated as ADMIN.",
+      "behavior_under_test": "Attempt to add a book without the required title.",
+      "expected_result": "Book creation is rejected with a validation error."
+    },
+    {
+      "id": "REF-009",
+      "requirement_id": "SRS-005",
+      "category": "boundary",
+      "precondition": "The user is ADMIN and all other book fields are valid.",
+      "behavior_under_test": "Attempt to create a book with total copies equal to zero.",
+      "expected_result": "Book creation is rejected because total copies must be greater than zero."
+    },
+    {
+      "id": "REF-010",
+      "requirement_id": "SRS-005",
+      "category": "boundary",
+      "precondition": "The user is ADMIN and all other book fields are valid.",
+      "behavior_under_test": "Attempt to create a book with available copies greater than total copies.",
+      "expected_result": "Book creation is rejected because available copies cannot exceed total copies."
+    },
+    {
+      "id": "REF-011",
+      "requirement_id": "SRS-008",
+      "category": "positive",
+      "precondition": "An existing book is selected by an authenticated ADMIN.",
+      "behavior_under_test": "Update the book with valid information.",
+      "expected_result": "The book record is updated, the change is logged, and confirmation is returned."
+    },
+    {
+      "id": "REF-012",
+      "requirement_id": "SRS-008",
+      "category": "negative",
+      "precondition": "An existing book is selected by an authenticated ADMIN.",
+      "behavior_under_test": "Attempt to update the book with data violating a validation constraint.",
+      "expected_result": "The update is rejected with a validation error."
+    },
+    {
+      "id": "REF-013",
+      "requirement_id": "SRS-009",
+      "category": "positive",
+      "precondition": "An ADMIN selects a book with no active borrowings.",
+      "behavior_under_test": "Confirm deletion of the book.",
+      "expected_result": "The book is removed from the catalog, deletion is logged, and confirmation is returned."
+    },
+    {
+      "id": "REF-014",
+      "requirement_id": "SRS-009",
+      "category": "negative",
+      "precondition": "An ADMIN selects a book with active borrowings.",
+      "behavior_under_test": "Attempt to delete the book.",
+      "expected_result": "Deletion is prevented because active borrowings exist."
+    },
+    {
+      "id": "REF-015",
+      "requirement_id": "SRS-010",
+      "category": "positive",
+      "precondition": "An authenticated MEMBER is within borrowing limits and the requested book is available.",
+      "behavior_under_test": "Borrow the book using the default borrowing duration.",
+      "expected_result": "A borrowing record is created, book availability is updated, and a due date based on the default 30-day duration is provided."
+    },
+    {
+      "id": "REF-016",
+      "requirement_id": "SRS-010",
+      "category": "negative",
+      "precondition": "An authenticated MEMBER requests a book with no available copies.",
+      "behavior_under_test": "Attempt to borrow the unavailable book.",
+      "expected_result": "The borrowing request is rejected with a constraint error."
+    },
+    {
+      "id": "REF-017",
+      "requirement_id": "SRS-010",
+      "category": "negative",
+      "precondition": "An authenticated MEMBER has reached the configured borrowing limit.",
+      "behavior_under_test": "Attempt to borrow another book.",
+      "expected_result": "The borrowing request is rejected because the borrowing limit has been reached."
+    },
+    {
+      "id": "REF-018",
+      "requirement_id": "SRS-013",
+      "category": "positive",
+      "precondition": "An authenticated user has a valid borrowing record.",
+      "behavior_under_test": "Return the borrowed book.",
+      "expected_result": "The borrowing status and book availability are updated, the return is logged, and confirmation is returned."
+    },
+    {
+      "id": "REF-019",
+      "requirement_id": "SRS-013",
+      "category": "negative",
+      "precondition": "The user is authenticated but the specified borrowing record is invalid.",
+      "behavior_under_test": "Attempt to return a book using the invalid borrowing record.",
+      "expected_result": "The return is rejected with an error."
+    }
+  ]
+}
