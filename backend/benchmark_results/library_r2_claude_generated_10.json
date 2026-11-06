@@ -1,0 +1,710 @@
+{
+  "pipeline": "Claude R1 -> Claude R2",
+  "sql_dialect": "postgresql",
+  "selected_scenarios": [
+    {
+      "id": "SRS-001-dbms_1",
+      "category": "positive",
+      "precondition": "Users table has no user with the chosen username or email. Valid inputs are ready: username of 3-50 characters, valid email, password of at least 8 characters, matching confirm password, role MEMBER.",
+      "behavior_under_test": "Register a new user with all valid inputs and role MEMBER",
+      "expected_result": "A new user record is created. A success message containing the user ID is returned, and the user is redirected to the login page."
+    },
+    {
+      "id": "SRS-001-dbms_9",
+      "category": "negative",
+      "precondition": "A user with username 'alice' already exists.",
+      "behavior_under_test": "Register a new user with the duplicate username 'alice' and a different, unused email",
+      "expected_result": "Registration is rejected with an error message about username uniqueness. No second user record is created."
+    },
+    {
+      "id": "SRS-005-dbms_1",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN; no book exists with the ISBN to be used.",
+      "behavior_under_test": "Add a book with all fields valid (title, author, unique ISBN, description, total copies > 0, available copies between 0 and total copies).",
+      "expected_result": "Book record is created and added to the catalog; a creation confirmation and the new book ID are returned."
+    },
+    {
+      "id": "SRS-005-dbms_5",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN; a book with ISBN X already exists in the catalog.",
+      "behavior_under_test": "Add a new book with ISBN X (duplicate).",
+      "expected_result": "Creation is rejected with an error message for the uniqueness violation; no new book record is created."
+    },
+    {
+      "id": "SRS-005-dbms_6",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with missing title.",
+      "expected_result": "Validation fails with an error message; no book record is created."
+    },
+    {
+      "id": "SRS-005-dbms_17",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = 1 (minimum valid) and available copies = 1.",
+      "expected_result": "Book is created successfully with confirmation and new book ID."
+    },
+    {
+      "id": "SRS-008-dbms_7",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists with ISBN A. Another book exists with ISBN B.",
+      "behavior_under_test": "Update book A's ISBN to the value of ISBN B (unique constraint check).",
+      "expected_result": "The update is rejected due to the ISBN uniqueness violation, an error message is returned, and book A retains its original ISBN."
+    },
+    {
+      "id": "SRS-009-dbms_5",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. The book has at least one active borrowing.",
+      "behavior_under_test": "Attempt to delete a book that has active borrowings, with the confirmation flag set to confirm.",
+      "expected_result": "The deletion is rejected with an error message about the constraint, and the book record and its borrowings remain unchanged."
+    },
+    {
+      "id": "SRS-010-dbms_4",
+      "category": "boundary",
+      "precondition": "A book has exactly 1 available copy. A MEMBER is authenticated and within the borrowing limit.",
+      "behavior_under_test": "Borrow the last available copy of the book.",
+      "expected_result": "The borrowing succeeds. The book's available copies become 0, which is a valid non-negative value. A borrowing record is created."
+    },
+    {
+      "id": "SRS-013-dbms_4",
+      "category": "positive",
+      "precondition": "A valid borrowing record exists for a book with a known number of available copies",
+      "behavior_under_test": "Update book availability on successful return",
+      "expected_result": "The book's availability is updated to reflect the returned copy (postcondition: availability updated), and the copies value remains a non-negative integer"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "TC-SRS-001-dbms_1",
+      "scenario_id": "SRS-001-dbms_1",
+      "title": "Register a new MEMBER user with all valid inputs",
+      "category": "positive",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "users table exists and contains no user with username 'bob_smith' or email 'bob.smith@example.com'",
+        "Valid inputs: username 'bob_smith' (9 characters), valid email, password of at least 8 characters (stored encrypted), role MEMBER"
+      ],
+      "constraints": [
+        "username is unique and 3-50 characters",
+        "email is unique and must match a valid email format",
+        "password_hash is at least 8 characters",
+        "role must be ADMIN or MEMBER"
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (user_id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE CHECK (char_length(username) BETWEEN 3 AND 50), email VARCHAR(255) NOT NULL UNIQUE CHECK (email ~ '^[^@]+@[^@]+[.][^@]+$'), password_hash TEXT NOT NULL CHECK (char_length(password_hash) >= 8), role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+      ],
+      "test_sql": "INSERT INTO users (username, email, password_hash, role) VALUES ('bob_smith', 'bob.smith@example.com', 'hash$2b$12$abcdefghijklmnopqrstuvwxyz', 'MEMBER') RETURNING user_id",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM users",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT user_id, username, email, role FROM users WHERE username = 'bob_smith'",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "bob_smith",
+              "bob.smith@example.com",
+              "MEMBER"
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The INSERT succeeds and returns the new user ID (1). Exactly one user record exists with username 'bob_smith', email 'bob.smith@example.com' and role MEMBER."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-001-dbms_9",
+      "scenario_id": "SRS-001-dbms_9",
+      "title": "Reject registration with duplicate username 'alice'",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "users table contains an existing user with username 'alice' and email 'alice@example.com'"
+      ],
+      "constraints": [
+        "username is unique and 3-50 characters",
+        "email is unique and must match a valid email format",
+        "password_hash is at least 8 characters",
+        "role must be ADMIN or MEMBER"
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (user_id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE CHECK (char_length(username) BETWEEN 3 AND 50), email VARCHAR(255) NOT NULL UNIQUE CHECK (email ~ '^[^@]+@[^@]+[.][^@]+$'), password_hash TEXT NOT NULL CHECK (char_length(password_hash) >= 8), role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+        "INSERT INTO users (user_id, username, email, password_hash, role) VALUES (1, 'alice', 'alice@example.com', 'hash$2b$12$alicealicealice', 'MEMBER')",
+        "SELECT setval(pg_get_serial_sequence('users', 'user_id'), (SELECT MAX(user_id) FROM users))"
+      ],
+      "test_sql": "INSERT INTO users (username, email, password_hash, role) VALUES ('alice', 'alice.other@example.com', 'hash$2b$12$anotherhashvalue', 'MEMBER')",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM users",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT user_id, username, email, role FROM users ORDER BY user_id",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "alice",
+              "alice@example.com",
+              "MEMBER"
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM users WHERE email = 'alice.other@example.com'",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "duplicate key value",
+        "assertion_description": "The INSERT is rejected with a unique-constraint violation on username. No second user record is created; only the original 'alice' row remains."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-005-dbms_1",
+      "scenario_id": "SRS-005-dbms_1",
+      "title": "Add a book with all valid fields and unique ISBN",
+      "category": "positive",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "User is authenticated as ADMIN (application-level; admin user present in users table)",
+        "books table exists and contains no book with ISBN '9780132350884'"
+      ],
+      "constraints": [
+        "title and author are required (NOT NULL)",
+        "isbn is optional but unique when provided",
+        "total_copies must be > 0",
+        "available_copies must be >= 0 and <= total_copies",
+        "created_at and updated_at timestamps are set on creation"
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (user_id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE, password_hash TEXT NOT NULL, role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')))",
+        "INSERT INTO users (user_id, username, email, password_hash, role) VALUES (1, 'admin', 'admin@example.com', 'hash$2b$12$adminadminadmin', 'ADMIN')",
+        "CREATE TABLE books (book_id SERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT chk_available_le_total CHECK (available_copies <= total_copies))"
+      ],
+      "test_sql": "INSERT INTO books (title, author, isbn, description, total_copies, available_copies) VALUES ('Clean Code', 'Robert C. Martin', '9780132350884', 'A handbook of agile software craftsmanship', 5, 3) RETURNING book_id",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, description, total_copies, available_copies FROM books WHERE isbn = '9780132350884'",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Clean Code",
+              "Robert C. Martin",
+              "9780132350884",
+              "A handbook of agile software craftsmanship",
+              5,
+              3
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE created_at IS NOT NULL AND updated_at IS NOT NULL",
+          "expected_scalar": 1,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The INSERT succeeds and returns the new book ID (1). Exactly one book record exists with the given title, author, ISBN, description, total_copies 5, available_copies 3, and populated timestamps."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books",
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-005-dbms_5",
+      "scenario_id": "SRS-005-dbms_5",
+      "title": "Reject adding a book with a duplicate ISBN",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "User is authenticated as ADMIN (application-level; admin user present in users table)",
+        "books table contains an existing book with ISBN '9780132350884'"
+      ],
+      "constraints": [
+        "title and author are required (NOT NULL)",
+        "isbn is optional but unique when provided",
+        "total_copies must be > 0",
+        "available_copies must be >= 0 and <= total_copies"
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (user_id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE, password_hash TEXT NOT NULL, role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')))",
+        "INSERT INTO users (user_id, username, email, password_hash, role) VALUES (1, 'admin', 'admin@example.com', 'hash$2b$12$adminadminadmin', 'ADMIN')",
+        "CREATE TABLE books (book_id SERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT chk_available_le_total CHECK (available_copies <= total_copies))",
+        "INSERT INTO books (book_id, title, author, isbn, description, total_copies, available_copies) VALUES (1, 'Clean Code', 'Robert C. Martin', '9780132350884', 'A handbook of agile software craftsmanship', 5, 3)",
+        "SELECT setval(pg_get_serial_sequence('books', 'book_id'), (SELECT MAX(book_id) FROM books))"
+      ],
+      "test_sql": "INSERT INTO books (title, author, isbn, description, total_copies, available_copies) VALUES ('Clean Code Second Copy', 'Robert C. Martin', '9780132350884', 'Duplicate ISBN attempt', 2, 2)",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books ORDER BY book_id",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Clean Code",
+              "Robert C. Martin",
+              "9780132350884",
+              5,
+              3
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE title = 'Clean Code Second Copy'",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "duplicate key value",
+        "assertion_description": "The INSERT is rejected with a unique-constraint violation on isbn. No new book record is created; only the original book with ISBN '9780132350884' remains."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books",
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-005-dbms_6",
+      "scenario_id": "SRS-005-dbms_6",
+      "title": "Reject adding a book with missing title",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "User is authenticated as ADMIN (application-level; admin user present in users table)",
+        "books table exists and is initially empty"
+      ],
+      "constraints": [
+        "title and author are required (NOT NULL)",
+        "isbn is optional but unique when provided",
+        "total_copies must be > 0",
+        "available_copies must be >= 0 and <= total_copies"
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (user_id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE, password_hash TEXT NOT NULL, role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')))",
+        "INSERT INTO users (user_id, username, email, password_hash, role) VALUES (1, 'admin', 'admin@example.com', 'hash$2b$12$adminadminadmin', 'ADMIN')",
+        "CREATE TABLE books (book_id SERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT chk_available_le_total CHECK (available_copies <= total_copies))"
+      ],
+      "test_sql": "INSERT INTO books (author, isbn, description, total_copies, available_copies) VALUES ('Robert C. Martin', '9780132350884', 'Book without a title', 5, 5)",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books",
+          "expected_scalar": 0,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE isbn = '9780132350884'",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "null value",
+        "assertion_description": "The INSERT is rejected with a NOT NULL violation on the required title column. No book record is created; the books table remains empty."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books",
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-005-dbms_17",
+      "scenario_id": "SRS-005-dbms_17",
+      "title": "Add a book with total copies = 1 (minimum valid) and available copies = 1",
+      "category": "boundary",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "User is authenticated as ADMIN (application-level; database operation performed directly).",
+        "The books table exists and is initially empty."
+      ],
+      "constraints": [
+        "books.title is NOT NULL",
+        "books.author is NOT NULL",
+        "books.isbn is UNIQUE (nullable)",
+        "books.total_copies is INTEGER NOT NULL and must be > 0",
+        "books.available_copies is INTEGER NOT NULL, must be >= 0 and <= total_copies",
+        "books.created_at and books.updated_at are set on creation"
+      ],
+      "setup_sql": [
+        "CREATE TABLE books (book_id SERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+      ],
+      "test_sql": "INSERT INTO books (title, author, isbn, description, total_copies, available_copies) VALUES ('Boundary Book', 'Boundary Author', '9780000000017', 'Single copy book', 1, 1)",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books WHERE isbn = '9780000000017'",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Boundary Book",
+              "Boundary Author",
+              "9780000000017",
+              1,
+              1
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE created_at IS NOT NULL AND updated_at IS NOT NULL",
+          "expected_scalar": 1,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The INSERT succeeds; exactly one book row exists with book_id 1, total_copies = 1 and available_copies = 1, and timestamps are set."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books"
+      ]
+    },
+    {
+      "id": "TC-SRS-008-dbms_7",
+      "scenario_id": "SRS-008-dbms_7",
+      "title": "Update book A's ISBN to the ISBN of book B is rejected by unique constraint",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "User is authenticated as ADMIN (application-level; database operation performed directly).",
+        "A book exists with ISBN '9780000000001' (book A, book_id 1).",
+        "Another book exists with ISBN '9780000000002' (book B, book_id 2)."
+      ],
+      "constraints": [
+        "books.isbn is UNIQUE",
+        "books.title and books.author are NOT NULL",
+        "books.total_copies must be > 0",
+        "books.available_copies must be >= 0 and <= total_copies"
+      ],
+      "setup_sql": [
+        "CREATE TABLE books (book_id SERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies), created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+        "INSERT INTO books (book_id, title, author, isbn, description, total_copies, available_copies) VALUES (1, 'Book A', 'Author A', '9780000000001', 'First book', 3, 3)",
+        "INSERT INTO books (book_id, title, author, isbn, description, total_copies, available_copies) VALUES (2, 'Book B', 'Author B', '9780000000002', 'Second book', 2, 2)"
+      ],
+      "test_sql": "UPDATE books SET isbn = '9780000000002', updated_at = CURRENT_TIMESTAMP WHERE book_id = 1",
+      "verification_assertions": [
+        {
+          "query": "SELECT isbn FROM books WHERE book_id = 1",
+          "expected_scalar": "9780000000001",
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT isbn FROM books WHERE book_id = 2",
+          "expected_scalar": "9780000000002",
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books",
+          "expected_scalar": 2,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE isbn = '9780000000002'",
+          "expected_scalar": 1,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "duplicate key value",
+        "assertion_description": "The UPDATE is rejected with a unique constraint violation on isbn; book A retains its original ISBN '9780000000001' and both rows remain unchanged."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books"
+      ]
+    },
+    {
+      "id": "TC-SRS-009-dbms_5",
+      "scenario_id": "SRS-009-dbms_5",
+      "title": "Deleting a book with an active borrowing is rejected by the foreign key constraint",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "User is authenticated as ADMIN (admin user id 1 exists with role ADMIN).",
+        "Book id 1 exists in the catalog.",
+        "Book id 1 has exactly one active borrowing (borrowing id 1, status ACTIVE) by member user id 2.",
+        "Confirmation flag is set to confirm (the DELETE statement is issued)."
+      ],
+      "constraints": [
+        "borrowings.book_id references books.id with ON DELETE RESTRICT, so a book with borrowings cannot be deleted.",
+        "borrowings.user_id references users.id.",
+        "users.username and users.email are unique.",
+        "books.isbn is unique.",
+        "books.total_copies > 0 and 0 <= available_copies <= total_copies."
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE CHECK (char_length(username) BETWEEN 3 AND 50), email VARCHAR(255) NOT NULL UNIQUE, password_hash TEXT NOT NULL, role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')))",
+        "CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, author TEXT NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies), created_at TIMESTAMP NOT NULL DEFAULT TIMESTAMP '2024-01-01 00:00:00', updated_at TIMESTAMP NOT NULL DEFAULT TIMESTAMP '2024-01-01 00:00:00')",
+        "CREATE TABLE borrowings (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE RESTRICT, borrow_date DATE NOT NULL, due_date DATE NOT NULL, return_date DATE, status VARCHAR(10) NOT NULL CHECK (status IN ('ACTIVE','RETURNED')), CHECK (due_date >= borrow_date))",
+        "INSERT INTO users (id, username, email, password_hash, role) VALUES (1, 'admin_user', 'admin@library.org', 'hashed_admin_pw', 'ADMIN')",
+        "INSERT INTO users (id, username, email, password_hash, role) VALUES (2, 'member_one', 'member1@library.org', 'hashed_member_pw', 'MEMBER')",
+        "INSERT INTO books (id, title, author, isbn, description, total_copies, available_copies) VALUES (1, 'Database Systems', 'C. J. Date', '9780321197849', 'Intro to databases', 3, 2)",
+        "INSERT INTO borrowings (id, user_id, book_id, borrow_date, due_date, return_date, status) VALUES (1, 2, 1, DATE '2024-01-10', DATE '2024-02-09', NULL, 'ACTIVE')"
+      ],
+      "test_sql": "DELETE FROM books WHERE id = 1",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE id = 1",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT id, title, author, isbn, total_copies, available_copies FROM books WHERE id = 1",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Database Systems",
+              "C. J. Date",
+              "9780321197849",
+              3,
+              2
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM borrowings WHERE book_id = 1 AND status = 'ACTIVE'",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT id, user_id, book_id, status FROM borrowings WHERE id = 1",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              2,
+              1,
+              "ACTIVE"
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "foreign key constraint",
+        "assertion_description": "The DELETE is rejected because borrowing id 1 still references book id 1; PostgreSQL raises a foreign key constraint violation. The book row and its active borrowing remain unchanged."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS borrowings",
+        "DROP TABLE IF EXISTS books",
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-010-dbms_4",
+      "scenario_id": "SRS-010-dbms_4",
+      "title": "Borrowing the last available copy sets available copies to 0 and creates a borrowing record",
+      "category": "boundary",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "Book id 1 exists with total_copies = 1 and available_copies = 1 (exactly one available copy).",
+        "Member user id 2 exists with role MEMBER, is authenticated, and has no active borrowings (within the borrowing limit).",
+        "The borrowings table is initially empty."
+      ],
+      "constraints": [
+        "books.available_copies must satisfy 0 <= available_copies <= total_copies.",
+        "books.total_copies > 0.",
+        "borrowings.book_id references books.id and borrowings.user_id references users.id.",
+        "Due date defaults to 30 days after the borrow date.",
+        "users.username and users.email are unique; books.isbn is unique."
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE CHECK (char_length(username) BETWEEN 3 AND 50), email VARCHAR(255) NOT NULL UNIQUE, password_hash TEXT NOT NULL, role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')))",
+        "CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT NOT NULL, author TEXT NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies), created_at TIMESTAMP NOT NULL DEFAULT TIMESTAMP '2024-01-01 00:00:00', updated_at TIMESTAMP NOT NULL DEFAULT TIMESTAMP '2024-01-01 00:00:00')",
+        "CREATE TABLE borrowings (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE RESTRICT, borrow_date DATE NOT NULL, due_date DATE NOT NULL, return_date DATE, status VARCHAR(10) NOT NULL CHECK (status IN ('ACTIVE','RETURNED')), CHECK (due_date >= borrow_date))",
+        "INSERT INTO users (id, username, email, password_hash, role) VALUES (1, 'admin_user', 'admin@library.org', 'hashed_admin_pw', 'ADMIN')",
+        "INSERT INTO users (id, username, email, password_hash, role) VALUES (2, 'member_one', 'member1@library.org', 'hashed_member_pw', 'MEMBER')",
+        "INSERT INTO books (id, title, author, isbn, description, total_copies, available_copies) VALUES (1, 'The Last Copy', 'A. Writer', '9780000000011', 'Only one copy in stock', 1, 1)"
+      ],
+      "test_sql": "INSERT INTO borrowings (id, user_id, book_id, borrow_date, due_date, return_date, status) VALUES (1, 2, 1, DATE '2024-03-01', DATE '2024-03-01' + INTERVAL '30 days', NULL, 'ACTIVE'); UPDATE books SET available_copies = available_copies - 1, updated_at = TIMESTAMP '2024-03-01 09:00:00' WHERE id = 1 AND available_copies > 0;",
+      "verification_assertions": [
+        {
+          "query": "SELECT available_copies FROM books WHERE id = 1",
+          "expected_scalar": 0,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT id, total_copies, available_copies FROM books WHERE id = 1",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              1,
+              0
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM borrowings WHERE book_id = 1 AND user_id = 2 AND status = 'ACTIVE'",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT id, user_id, book_id, to_char(borrow_date, 'YYYY-MM-DD'), to_char(due_date, 'YYYY-MM-DD'), return_date, status FROM borrowings WHERE id = 1",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              2,
+              1,
+              "2024-03-01",
+              "2024-03-31",
+              null,
+              "ACTIVE"
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The borrowing succeeds: a new ACTIVE borrowing record (id 1) for member 2 and book 1 exists with due date 30 days after the borrow date, and the book's available_copies is decremented from 1 to 0, which satisfies the non-negative CHECK constraint."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS borrowings",
+        "DROP TABLE IF EXISTS books",
+        "DROP TABLE IF EXISTS users"
+      ]
+    },
+    {
+      "id": "TC-SRS-013-dbms_4-01",
+      "scenario_id": "SRS-013-dbms_4",
+      "title": "Successful book return increments available copies and marks borrowing as returned",
+      "category": "positive",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "A member user exists (user_id = 1)",
+        "A book exists with total_copies = 3 and available_copies = 2 (one copy currently borrowed)",
+        "An active (BORROWED) borrowing record exists linking the member to the book with return_date NULL"
+      ],
+      "constraints": [
+        "books.total_copies must be > 0",
+        "books.available_copies must be >= 0 and <= total_copies",
+        "borrowings.user_id references users.user_id",
+        "borrowings.book_id references books.book_id",
+        "users.username and users.email are unique",
+        "books.isbn is unique when provided"
+      ],
+      "setup_sql": [
+        "CREATE TABLE users (user_id INTEGER PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE CHECK (char_length(username) BETWEEN 3 AND 50), email VARCHAR(255) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, role VARCHAR(10) NOT NULL CHECK (role IN ('ADMIN','MEMBER')))",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title VARCHAR(255) NOT NULL, author VARCHAR(255) NOT NULL, isbn VARCHAR(20) UNIQUE, description TEXT, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies), created_at TIMESTAMP NOT NULL DEFAULT '2024-01-01 00:00:00', updated_at TIMESTAMP NOT NULL DEFAULT '2024-01-01 00:00:00')",
+        "CREATE TABLE borrowings (borrowing_id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(user_id), book_id INTEGER NOT NULL REFERENCES books(book_id), borrow_date DATE NOT NULL, due_date DATE NOT NULL, return_date DATE, status VARCHAR(10) NOT NULL CHECK (status IN ('BORROWED','RETURNED')), CHECK (due_date >= borrow_date), CHECK (return_date IS NULL OR return_date >= borrow_date))",
+        "INSERT INTO users (user_id, username, email, password_hash, role) VALUES (1, 'member01', 'member01@example.com', 'hashedpassword1', 'MEMBER')",
+        "INSERT INTO books (book_id, title, author, isbn, description, total_copies, available_copies) VALUES (10, 'Database Systems', 'Jane Doe', '9780000000010', 'Intro to DBMS', 3, 2)",
+        "INSERT INTO borrowings (borrowing_id, user_id, book_id, borrow_date, due_date, return_date, status) VALUES (100, 1, 10, '2024-03-01', '2024-03-31', NULL, 'BORROWED')"
+      ],
+      "test_sql": "UPDATE borrowings SET status = 'RETURNED', return_date = DATE '2024-03-15' WHERE borrowing_id = 100 AND status = 'BORROWED'; UPDATE books SET available_copies = available_copies + 1, updated_at = TIMESTAMP '2024-03-15 10:00:00' WHERE book_id = 10;",
+      "verification_assertions": [
+        {
+          "query": "SELECT available_copies FROM books WHERE book_id = 10",
+          "expected_scalar": 3,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT COUNT(*) FROM books WHERE book_id = 10 AND available_copies >= 0 AND available_copies <= total_copies",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT status FROM borrowings WHERE borrowing_id = 100",
+          "expected_scalar": "RETURNED",
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT borrowing_id, user_id, book_id, status, return_date::text FROM borrowings WHERE borrowing_id = 100",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              100,
+              1,
+              10,
+              "RETURNED",
+              "2024-03-15"
+            ]
+          ]
+        },
+        {
+          "query": "SELECT COUNT(*) FROM borrowings WHERE book_id = 10 AND status = 'BORROWED'",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "After the return, the borrowing record status is RETURNED with return_date set, and the book's available_copies is incremented from 2 to 3, remaining a non-negative integer not exceeding total_copies."
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS borrowings",
+        "DROP TABLE IF EXISTS books",
+        "DROP TABLE IF EXISTS users"
+      ]
+    }
+  ],
+  "completed_batches": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "review_required": true
+}

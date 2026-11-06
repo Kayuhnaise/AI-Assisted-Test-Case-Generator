@@ -1,0 +1,120 @@
+{
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "errors": 0
+  },
+  "results": [
+    {
+      "test_case_id": "tc-scen-1",
+      "scenario_id": "scen-1",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": true,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT succeeds and the books table contains exactly one row with the registered values",
+      "actual_outcome": "SQL executed; checking database state",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-2",
+      "scenario_id": "scen-2",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails with a primary key violation and the existing book remains unchanged",
+      "actual_outcome": "duplicate key value violates unique constraint \"books_pkey\"\nDETAIL:  Key (book_id)=(1) already exists.",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-3",
+      "scenario_id": "scen-3",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails because the title is empty and the books table remains empty",
+      "actual_outcome": "new row for relation \"books\" violates check constraint \"books_title_check\"\nDETAIL:  Failing row contains (1, , Andrew Hunt, 9780201616224, 5, 3).",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-4",
+      "scenario_id": "scen-4",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails because the author is empty and the books table remains empty",
+      "actual_outcome": "new row for relation \"books\" violates check constraint \"books_author_check\"\nDETAIL:  Failing row contains (1, The Pragmatic Programmer, , 9780201616224, 5, 3).",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-5",
+      "scenario_id": "scen-5",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails with a unique violation on isbn and the existing book remains unchanged",
+      "actual_outcome": "duplicate key value violates unique constraint \"books_isbn_key\"\nDETAIL:  Key (isbn)=(9780132350884) already exists.",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-6",
+      "scenario_id": "scen-6",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails because total_copies is not greater than zero and the books table remains empty",
+      "actual_outcome": "new row for relation \"books\" violates check constraint \"books_total_copies_check\"\nDETAIL:  Failing row contains (1, The Pragmatic Programmer, Andrew Hunt, 9780201616224, 0, 0).",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-7",
+      "scenario_id": "scen-7",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails because available_copies is negative and the books table remains empty",
+      "actual_outcome": "new row for relation \"books\" violates check constraint \"books_check\"\nDETAIL:  Failing row contains (1, The Pragmatic Programmer, Andrew Hunt, 9780201616224, 5, -1).",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-8",
+      "scenario_id": "scen-8",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": false,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT fails because available_copies exceeds total_copies and the books table remains empty",
+      "actual_outcome": "new row for relation \"books\" violates check constraint \"books_check\"\nDETAIL:  Failing row contains (1, The Pragmatic Programmer, Andrew Hunt, 9780201616224, 5, 6).",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-9",
+      "scenario_id": "scen-9",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": true,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT succeeds and the books table contains exactly one row with available_copies = 0",
+      "actual_outcome": "SQL executed; checking database state",
+      "errors": []
+    },
+    {
+      "test_case_id": "tc-scen-10",
+      "scenario_id": "scen-10",
+      "status": "passed",
+      "setup_successful": true,
+      "execution_successful": true,
+      "assertion_passed": true,
+      "expected_outcome": "The INSERT succeeds and the books table contains exactly one row with available_copies equal to total_copies",
+      "actual_outcome": "SQL executed; checking database state",
+      "errors": []
+    }
+  ]
+}

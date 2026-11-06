@@ -1,0 +1,558 @@
+{
+  "requirement_document": "\nREQ-DEMO-001: Book Registration\n\nThe system shall allow an administrator to register a book in\nthe library catalog.\n\nEach book must have:\n- A unique integer book ID.\n- A nonempty title.\n- A nonempty author.\n- A unique ISBN.\n- A total_copies value greater than zero.\n- An available_copies value between zero and total_copies.\n\nThe system shall reject registrations that violate these constraints.\nSuccessful registrations shall create a book record.\n",
+  "sql_dialect": "postgresql",
+  "scenarios": [
+    {
+      "id": "scen-1",
+      "category": "positive",
+      "precondition": "The database is empty",
+      "behavior_under_test": "Register a book with a unique integer book ID, nonempty title, nonempty author, unique ISBN, total_copies > 0, and available_copies in [0, total_copies]",
+      "expected_result": "The system creates a book record in the catalog"
+    },
+    {
+      "id": "scen-2",
+      "category": "negative",
+      "precondition": "The database contains a book with the same book ID as the one being registered",
+      "behavior_under_test": "Register a book with a book ID that already exists in the database",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-3",
+      "category": "negative",
+      "precondition": "The registration request has an empty title field",
+      "behavior_under_test": "Register a book with an empty title",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-4",
+      "category": "negative",
+      "precondition": "The registration request has an empty author field",
+      "behavior_under_test": "Register a book with an empty author",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-5",
+      "category": "negative",
+      "precondition": "The database contains a book with the same ISBN as the one being registered",
+      "behavior_under_test": "Register a book with an ISBN that already exists in the database",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-6",
+      "category": "negative",
+      "precondition": "The registration request has total_copies <= 0",
+      "behavior_under_test": "Register a book with total_copies <= 0",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-7",
+      "category": "negative",
+      "precondition": "The registration request has available_copies < 0",
+      "behavior_under_test": "Register a book with available_copies < 0",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-8",
+      "category": "negative",
+      "precondition": "The registration request has available_copies > total_copies",
+      "behavior_under_test": "Register a book with available_copies > total_copies",
+      "expected_result": "The system rejects the registration"
+    },
+    {
+      "id": "scen-9",
+      "category": "boundary",
+      "precondition": "The database is empty and the registration request has available_copies = 0 and total_copies > 0",
+      "behavior_under_test": "Register a book with available_copies = 0",
+      "expected_result": "The system creates a book record in the catalog"
+    },
+    {
+      "id": "scen-10",
+      "category": "boundary",
+      "precondition": "The database is empty and the registration request has available_copies = total_copies and total_copies > 0",
+      "behavior_under_test": "Register a book with available_copies = total_copies",
+      "expected_result": "The system creates a book record in the catalog"
+    }
+  ],
+  "test_cases": [
+    {
+      "id": "tc-scen-1",
+      "scenario_id": "scen-1",
+      "title": "Register a valid book into an empty catalog",
+      "category": "positive",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'The Pragmatic Programmer', 'Andrew Hunt', '9780201616224', 5, 3);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books WHERE book_id = 1;",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "The Pragmatic Programmer",
+              "Andrew Hunt",
+              "9780201616224",
+              5,
+              3
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The INSERT succeeds and the books table contains exactly one row with the registered values"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-2",
+      "scenario_id": "scen-2",
+      "title": "Reject registration with a duplicate book ID",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains a book with book_id = 1"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));",
+        "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'Clean Code', 'Robert C. Martin', '9780132350884', 4, 4);"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'Refactoring', 'Martin Fowler', '9780201485677', 2, 2);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books WHERE book_id = 1;",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Clean Code",
+              "Robert C. Martin",
+              "9780132350884",
+              4,
+              4
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "duplicate key value",
+        "assertion_description": "The INSERT fails with a primary key violation and the existing book remains unchanged"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-3",
+      "scenario_id": "scen-3",
+      "title": "Reject registration with an empty title",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has an empty title"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, '', 'Andrew Hunt', '9780201616224', 5, 3);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "violates check constraint",
+        "assertion_description": "The INSERT fails because the title is empty and the books table remains empty"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-4",
+      "scenario_id": "scen-4",
+      "title": "Reject registration with an empty author",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has an empty author"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'The Pragmatic Programmer', '', '9780201616224', 5, 3);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "violates check constraint",
+        "assertion_description": "The INSERT fails because the author is empty and the books table remains empty"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-5",
+      "scenario_id": "scen-5",
+      "title": "Reject registration with a duplicate ISBN",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains a book with isbn = '9780132350884'"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));",
+        "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'Clean Code', 'Robert C. Martin', '9780132350884', 4, 4);"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (2, 'Clean Code Second Copy', 'Robert C. Martin', '9780132350884', 1, 1);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books ORDER BY book_id;",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Clean Code",
+              "Robert C. Martin",
+              "9780132350884",
+              4,
+              4
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "duplicate key value",
+        "assertion_description": "The INSERT fails with a unique violation on isbn and the existing book remains unchanged"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-6",
+      "scenario_id": "scen-6",
+      "title": "Reject registration with total_copies <= 0",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has total_copies = 0"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'The Pragmatic Programmer', 'Andrew Hunt', '9780201616224', 0, 0);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "violates check constraint",
+        "assertion_description": "The INSERT fails because total_copies is not greater than zero and the books table remains empty"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-7",
+      "scenario_id": "scen-7",
+      "title": "Reject registration with available_copies < 0",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has available_copies = -1"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'The Pragmatic Programmer', 'Andrew Hunt', '9780201616224', 5, -1);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "violates check constraint",
+        "assertion_description": "The INSERT fails because available_copies is negative and the books table remains empty"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-8",
+      "scenario_id": "scen-8",
+      "title": "Reject registration with available_copies > total_copies",
+      "category": "negative",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has available_copies = 6 and total_copies = 5"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'The Pragmatic Programmer', 'Andrew Hunt', '9780201616224', 5, 6);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 0,
+          "expected_rows": null
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "error",
+        "expected_value": null,
+        "expected_error": "violates check constraint",
+        "assertion_description": "The INSERT fails because available_copies exceeds total_copies and the books table remains empty"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-9",
+      "scenario_id": "scen-9",
+      "title": "Register a book with available_copies = 0 (lower boundary)",
+      "category": "boundary",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has available_copies = 0 and total_copies = 5"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'Design Patterns', 'Erich Gamma', '9780201633610', 5, 0);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books WHERE book_id = 1;",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Design Patterns",
+              "Erich Gamma",
+              "9780201633610",
+              5,
+              0
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The INSERT succeeds and the books table contains exactly one row with available_copies = 0"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    },
+    {
+      "id": "tc-scen-10",
+      "scenario_id": "scen-10",
+      "title": "Register a book with available_copies = total_copies (upper boundary)",
+      "category": "boundary",
+      "sql_dialect": "postgresql",
+      "preconditions": [
+        "The books table exists and contains no rows",
+        "The registration request has available_copies = 5 and total_copies = 5"
+      ],
+      "constraints": [
+        "book_id is the integer primary key",
+        "title is NOT NULL and nonempty",
+        "author is NOT NULL and nonempty",
+        "isbn is NOT NULL and UNIQUE",
+        "total_copies > 0",
+        "available_copies between 0 and total_copies"
+      ],
+      "setup_sql": [
+        "DROP TABLE IF EXISTS books;",
+        "CREATE TABLE books (book_id INTEGER PRIMARY KEY, title TEXT NOT NULL CHECK (title <> ''), author TEXT NOT NULL CHECK (author <> ''), isbn TEXT NOT NULL UNIQUE, total_copies INTEGER NOT NULL CHECK (total_copies > 0), available_copies INTEGER NOT NULL CHECK (available_copies >= 0 AND available_copies <= total_copies));"
+      ],
+      "test_sql": "INSERT INTO books (book_id, title, author, isbn, total_copies, available_copies) VALUES (1, 'Design Patterns', 'Erich Gamma', '9780201633610', 5, 5);",
+      "verification_assertions": [
+        {
+          "query": "SELECT COUNT(*) FROM books;",
+          "expected_scalar": 1,
+          "expected_rows": null
+        },
+        {
+          "query": "SELECT book_id, title, author, isbn, total_copies, available_copies FROM books WHERE book_id = 1;",
+          "expected_scalar": null,
+          "expected_rows": [
+            [
+              1,
+              "Design Patterns",
+              "Erich Gamma",
+              "9780201633610",
+              5,
+              5
+            ]
+          ]
+        }
+      ],
+      "verification_sql": [],
+      "expected_outcome": {
+        "outcome_type": "database_state",
+        "expected_value": null,
+        "expected_error": null,
+        "assertion_description": "The INSERT succeeds and the books table contains exactly one row with available_copies equal to total_copies"
+      },
+      "cleanup_sql": [
+        "DROP TABLE IF EXISTS books;"
+      ]
+    }
+  ],
+  "review_required": true
+}

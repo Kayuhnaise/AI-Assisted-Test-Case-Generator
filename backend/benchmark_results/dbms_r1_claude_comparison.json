@@ -1,0 +1,43 @@
+{
+  "claude_model": "claude-sonnet-5-5",
+  "results": [
+    {
+      "case_id": "R2-001",
+      "ollama_original_coverage": 0.0,
+      "ollama_batched_coverage": 0.0,
+      "claude_coverage": {
+        "expert_scenario_count": 1,
+        "extracted_scenario_count": 1,
+        "covered_scenario_count": 0,
+        "coverage_percentage": 0.0,
+        "target_percentage": 90.0,
+        "target_met": false,
+        "matches": [],
+        "uncovered_expert_scenario_ids": [
+          "R2-001"
+        ]
+      },
+      "claude_error": null,
+      "claude_seconds": 2.39
+    },
+    {
+      "case_id": "R2-002",
+      "ollama_original_coverage": 0.0,
+      "ollama_batched_coverage": 0.0,
+      "claude_coverage": {
+        "expert_scenario_count": 1,
+        "extracted_scenario_count": 4,
+        "covered_scenario_count": 0,
+        "coverage_percentage": 0.0,
+        "target_percentage": 90.0,
+        "target_met": false,
+        "matches": [],
+        "uncovered_expert_scenario_ids": [
+          "R2-002"
+        ]
+      },
+      "claude_error": null,
+      "claude_seconds": 1.68
+    }
+  ]
+}

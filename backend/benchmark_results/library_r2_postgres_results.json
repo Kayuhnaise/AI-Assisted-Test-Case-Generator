@@ -1,0 +1,90 @@
+[
+  {
+    "test_case_id": "TC-SRS-001-dbms_1",
+    "scenario_id": "SRS-001-dbms_1",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": true,
+    "assertion_passed": true,
+    "expected_outcome": "The INSERT succeeds and returns the new user ID (1). Exactly one user record exists with username 'bob_smith', email 'bob.smith@example.com' and role MEMBER.",
+    "actual_outcome": "SQL executed; checking database state",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-001-dbms_9",
+    "scenario_id": "SRS-001-dbms_9",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": false,
+    "assertion_passed": true,
+    "expected_outcome": "The INSERT is rejected with a unique-constraint violation on username. No second user record is created; only the original 'alice' row remains.",
+    "actual_outcome": "duplicate key value violates unique constraint \"users_username_key\"\nDETAIL:  Key (username)=(alice) already exists.",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-005-dbms_1",
+    "scenario_id": "SRS-005-dbms_1",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": true,
+    "assertion_passed": true,
+    "expected_outcome": "The INSERT succeeds and returns the new book ID (1). Exactly one book record exists with the given title, author, ISBN, description, total_copies 5, available_copies 3, and populated timestamps.",
+    "actual_outcome": "SQL executed; checking database state",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-005-dbms_5",
+    "scenario_id": "SRS-005-dbms_5",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": false,
+    "assertion_passed": true,
+    "expected_outcome": "The INSERT is rejected with a unique-constraint violation on isbn. No new book record is created; only the original book with ISBN '9780132350884' remains.",
+    "actual_outcome": "duplicate key value violates unique constraint \"books_isbn_key\"\nDETAIL:  Key (isbn)=(9780132350884) already exists.",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-005-dbms_6",
+    "scenario_id": "SRS-005-dbms_6",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": false,
+    "assertion_passed": true,
+    "expected_outcome": "The INSERT is rejected with a NOT NULL violation on the required title column. No book record is created; the books table remains empty.",
+    "actual_outcome": "null value in column \"title\" of relation \"books\" violates not-null constraint\nDETAIL:  Failing row contains (1, null, Robert C. Martin, 9780132350884, Book without a title, 5, 5, 2026-11-06 12:50:03.854149, 2026-11-06 12:50:03.854149).",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-005-dbms_17",
+    "scenario_id": "SRS-005-dbms_17",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": true,
+    "assertion_passed": true,
+    "expected_outcome": "The INSERT succeeds; exactly one book row exists with book_id 1, total_copies = 1 and available_copies = 1, and timestamps are set.",
+    "actual_outcome": "SQL executed; checking database state",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-008-dbms_7",
+    "scenario_id": "SRS-008-dbms_7",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": false,
+    "assertion_passed": true,
+    "expected_outcome": "The UPDATE is rejected with a unique constraint violation on isbn; book A retains its original ISBN '9780000000001' and both rows remain unchanged.",
+    "actual_outcome": "duplicate key value violates unique constraint \"books_isbn_key\"\nDETAIL:  Key (isbn)=(9780000000002) already exists.",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-009-dbms_5",
+    "scenario_id": "SRS-009-dbms_5",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": false,
+    "assertion_passed": true,
+    "expected_outcome": "The DELETE is rejected because borrowing id 1 still references book id 1; PostgreSQL raises a foreign key constraint violation. The book row and its active borrowing remain unchanged.",
+    "actual_outcome": "update or delete on table \"books\" violates foreign key constraint \"borrowings_book_id_fkey\" on table \"borrowings\"\nDETAIL:  Key (id)=(1) is still referenced from table \"borrowings\".",
+    "errors": []
+  }
+]

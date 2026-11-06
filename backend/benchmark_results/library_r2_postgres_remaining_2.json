@@ -1,0 +1,24 @@
+[
+  {
+    "test_case_id": "TC-SRS-010-dbms_4",
+    "scenario_id": "SRS-010-dbms_4",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": true,
+    "assertion_passed": true,
+    "expected_outcome": "The borrowing succeeds: a new ACTIVE borrowing record (id 1) for member 2 and book 1 exists with due date 30 days after the borrow date, and the book's available_copies is decremented from 1 to 0, which satisfies the non-negative CHECK constraint.",
+    "actual_outcome": "SQL executed; checking database state",
+    "errors": []
+  },
+  {
+    "test_case_id": "TC-SRS-013-dbms_4-01",
+    "scenario_id": "SRS-013-dbms_4",
+    "status": "passed",
+    "setup_successful": true,
+    "execution_successful": true,
+    "assertion_passed": true,
+    "expected_outcome": "After the return, the borrowing record status is RETURNED with return_date set, and the book's available_copies is incremented from 2 to 3, remaining a non-negative integer not exceeding total_copies.",
+    "actual_outcome": "SQL executed; checking database state",
+    "errors": []
+  }
+]

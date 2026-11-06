@@ -1,0 +1,125 @@
+{
+  "model": "qwen3:4b",
+  "evaluated_at_utc": "2026-11-05T19:45:56.736910+00:00",
+  "results": [
+    {
+      "case_id": "R2-001",
+      "requirement_document": "The users table shall enforce unique, non-null email addresses. A new user with a distinct email shall be inserted successfully.",
+      "expert_scenario": {
+        "id": "R2-001",
+        "category": "positive",
+        "precondition": "The users table contains one user with email alice@example.com.",
+        "behavior_under_test": "Insert a second user with email bob@example.com.",
+        "expected_result": "The insertion succeeds and both users exist."
+      },
+      "extraction_status": "passed",
+      "extraction_seconds": 80.18,
+      "extracted_scenario_count": 1,
+      "extracted_scenarios": [
+        {
+          "id": "scenario_1",
+          "category": "positive",
+          "precondition": "The email address to be inserted is not already present in the users table.",
+          "behavior_under_test": "Inserting a new user with a non-null email address that is distinct (i.e., not present in the users table)",
+          "expected_result": "The insertion is successful and the email address is unique in the users table."
+        }
+      ],
+      "original_coverage": {
+        "expert_scenario_count": 1,
+        "extracted_scenario_count": 1,
+        "covered_scenario_count": 0,
+        "coverage_percentage": 0.0,
+        "target_percentage": 90.0,
+        "target_met": false,
+        "matches": [],
+        "uncovered_expert_scenario_ids": [
+          "R2-001"
+        ]
+      },
+      "original_coverage_seconds": 102.83,
+      "batched_coverage": {
+        "expert_scenario_count": 1,
+        "extracted_scenario_count": 1,
+        "covered_scenario_count": 0,
+        "coverage_percentage": 0.0,
+        "target_percentage": 90.0,
+        "target_met": false,
+        "matches": [],
+        "uncovered_expert_scenario_ids": [
+          "R2-001"
+        ]
+      },
+      "batched_coverage_seconds": 85.36
+    },
+    {
+      "case_id": "R2-002",
+      "requirement_document": "The accounts table shall store account balances as non-negative integers. Updating an account to a valid balance shall succeed.",
+      "expert_scenario": {
+        "id": "R2-002",
+        "category": "positive",
+        "precondition": "An account exists with id 1 and balance 100.",
+        "behavior_under_test": "Update the balance to 150.",
+        "expected_result": "The account balance becomes 150."
+      },
+      "extraction_status": "passed",
+      "extraction_seconds": 119.98,
+      "extracted_scenario_count": 4,
+      "extracted_scenarios": [
+        {
+          "id": "pos_1",
+          "category": "positive",
+          "precondition": "The accounts table contains at least one account",
+          "behavior_under_test": "Update an account balance to a non-negative integer (e.g., 10)",
+          "expected_result": "The update succeeds"
+        },
+        {
+          "id": "neg_1",
+          "category": "negative",
+          "precondition": "The accounts table contains at least one account",
+          "behavior_under_test": "Update an account balance to a negative integer (e.g., -5)",
+          "expected_result": "The update fails"
+        },
+        {
+          "id": "neg_2",
+          "category": "negative",
+          "precondition": "The accounts table contains at least one account",
+          "behavior_under_test": "Update an account balance to a non-integer (e.g., 10.5)",
+          "expected_result": "The update fails"
+        },
+        {
+          "id": "boundary_1",
+          "category": "boundary",
+          "precondition": "The accounts table contains at least one account",
+          "behavior_under_test": "Update an account balance to 0",
+          "expected_result": "The update succeeds"
+        }
+      ],
+      "original_coverage": {
+        "expert_scenario_count": 1,
+        "extracted_scenario_count": 4,
+        "covered_scenario_count": 0,
+        "coverage_percentage": 0.0,
+        "target_percentage": 90.0,
+        "target_met": false,
+        "matches": [],
+        "uncovered_expert_scenario_ids": [
+          "R2-002"
+        ]
+      },
+      "original_coverage_seconds": 89.43,
+      "batched_coverage": {
+        "expert_scenario_count": 1,
+        "extracted_scenario_count": 4,
+        "covered_scenario_count": 0,
+        "coverage_percentage": 0.0,
+        "target_percentage": 90.0,
+        "target_met": false,
+        "matches": [],
+        "uncovered_expert_scenario_ids": [
+          "R2-002"
+        ]
+      },
+      "batched_coverage_seconds": 89.48
+    }
+  ]
+}

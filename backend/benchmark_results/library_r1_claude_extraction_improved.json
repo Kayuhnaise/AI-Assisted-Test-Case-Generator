@@ -1,0 +1,833 @@
+{
+  "SRS-001": [
+    {
+      "id": "dbms_1",
+      "category": "positive",
+      "precondition": "Users table exists and contains no user with username 'alice01' or email 'alice@example.com'.",
+      "behavior_under_test": "Register a new user with valid username, valid email, password of at least 8 characters, matching confirm password, and role MEMBER.",
+      "expected_result": "A new user record is created; a success message containing the new user ID is returned; the user is redirected to the login page."
+    },
+    {
+      "id": "dbms_2",
+      "category": "positive",
+      "precondition": "Users table exists and contains no user with the chosen username or email.",
+      "behavior_under_test": "Register a new user with role ADMIN and otherwise valid inputs.",
+      "expected_result": "A new user record is created with role ADMIN; a success message with user ID is returned; redirect to the login page."
+    },
+    {
+      "id": "dbms_3",
+      "category": "positive",
+      "precondition": "Users table exists; no user has the chosen username or email.",
+      "behavior_under_test": "After successful registration, inspect the stored password value (password encryption step).",
+      "expected_result": "The stored password is encrypted and does not equal the plaintext password submitted."
+    },
+    {
+      "id": "dbms_4",
+      "category": "positive",
+      "precondition": "Users table is empty or has no conflicting username/email; valid registration input prepared.",
+      "behavior_under_test": "End-to-end registration: validate input, check uniqueness of username and email, encrypt password, create user record, return outputs.",
+      "expected_result": "All inputs pass validation and uniqueness checks; the password is stored encrypted; exactly one new user record exists with the submitted username, email and role; a success message with the user ID is returned; the user is redirected to the login page. Sending a confirmation is optional and its absence does not fail the registration."
+    },
+    {
+      "id": "dbms_5",
+      "category": "boundary",
+      "precondition": "No user with the username exists.",
+      "behavior_under_test": "Register with a username of exactly 3 characters (lower limit).",
+      "expected_result": "The registration is accepted and the user record is created."
+    },
+    {
+      "id": "dbms_6",
+      "category": "boundary",
+      "precondition": "No user with the username exists.",
+      "behavior_under_test": "Register with a username of exactly 2 characters (just below minimum).",
+      "expected_result": "Registration is rejected with a validation error message; no user record is created."
+    },
+    {
+      "id": "dbms_7",
+      "category": "boundary",
+      "precondition": "No user with the username exists.",
+      "behavior_under_test": "Register with a username of exactly 50 characters (upper limit).",
+      "expected_result": "The registration is accepted and the user record is created."
+    },
+    {
+      "id": "dbms_8",
+      "category": "boundary",
+      "precondition": "No user with the username exists.",
+      "behavior_under_test": "Register with a username of 51 characters (just above maximum).",
+      "expected_result": "Registration is rejected with a validation error message; no user record is created."
+    },
+    {
+      "id": "dbms_9",
+      "category": "boundary",
+      "precondition": "Username and email are unique and valid.",
+      "behavior_under_test": "Register with a password of exactly 8 characters and a matching confirm password.",
+      "expected_result": "The registration is accepted and the user record is created."
+    },
+    {
+      "id": "dbms_10",
+      "category": "boundary",
+      "precondition": "Username and email are unique and valid.",
+      "behavior_under_test": "Register with a password of 7 characters (just below minimum) and matching confirm password.",
+      "expected_result": "Registration is rejected with a validation error message; no user record is created."
+    },
+    {
+      "id": "dbms_11",
+      "category": "negative",
+      "precondition": "A user with username 'alice01' already exists.",
+      "behavior_under_test": "Register a new user with the duplicate username 'alice01' and a different unique email.",
+      "expected_result": "Registration is rejected with an error message indicating the uniqueness violation; no new user record is created."
+    },
+    {
+      "id": "dbms_12",
+      "category": "negative",
+      "precondition": "A user with email 'alice@example.com' already exists.",
+      "behavior_under_test": "Register a new user with the duplicate email and a different unique username.",
+      "expected_result": "Registration is rejected with an error message indicating the uniqueness violation; no new user record is created."
+    },
+    {
+      "id": "dbms_13",
+      "category": "negative",
+      "precondition": "A user exists with both the same username and the same email as the submitted input.",
+      "behavior_under_test": "Register with both username and email duplicating an existing user.",
+      "expected_result": "Registration is rejected with error message(s); user count is unchanged."
+    },
+    {
+      "id": "dbms_14",
+      "category": "negative",
+      "precondition": "Username is unique and valid.",
+      "behavior_under_test": "Register with an invalid email format (e.g., 'alice-at-example.com').",
+      "expected_result": "Registration is rejected with an email validation error message; no user record is created."
+    },
+    {
+      "id": "dbms_15",
+      "category": "negative",
+      "precondition": "Username and email are unique and valid; password is 8+ characters.",
+      "behavior_under_test": "Register where Confirm Password does not match Password.",
+      "expected_result": "Registration is rejected with a validation error message; no user record is created."
+    },
+    {
+      "id": "dbms_16",
+      "category": "negative",
+      "precondition": "Users table exists.",
+      "behavior_under_test": "Register with missing required inputs (empty username, email, password, or role).",
+      "expected_result": "Registration is rejected with validation error messages; no user record is created."
+    },
+    {
+      "id": "dbms_17",
+      "category": "negative",
+      "precondition": "Username, email, and password are otherwise valid.",
+      "behavior_under_test": "Register with a role value other than ADMIN or MEMBER (e.g., 'GUEST').",
+      "expected_result": "Registration is rejected with a validation error message; no user record is created."
+    },
+    {
+      "id": "dbms_18",
+      "category": "edge",
+      "precondition": "A user with username 'Alice01' exists.",
+      "behavior_under_test": "Register with username 'alice01' (differing only in case) and a unique email.",
+      "expected_result": "Outcome follows the system's uniqueness rule; the document does not specify case sensitivity, so the result (accept or reject as duplicate) should be recorded and applied consistently."
+    },
+    {
+      "id": "dbms_19",
+      "category": "negative",
+      "precondition": "Users table exists; registration input contains multiple validation failures (short username, invalid email, short password).",
+      "behavior_under_test": "Submit a registration with multiple invalid fields.",
+      "expected_result": "Error messages for validation failures are returned; no user record is created."
+    },
+    {
+      "id": "dbms_20",
+      "category": "edge",
+      "precondition": "Valid unique registration input; confirmation sending is unavailable or not configured.",
+      "behavior_under_test": "Register when the optional confirmation step cannot be performed.",
+      "expected_result": "Registration still succeeds because confirmation is optional: user record is created, success message with user ID is shown, and redirect to login occurs."
+    }
+  ],
+  "SRS-005": [
+    {
+      "id": "dbms_1",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. Books table exists. No existing book has ISBN '978-3-16-148410-0'. Record count of books is known.",
+      "behavior_under_test": "End-to-end book addition: submit title, author, valid unique ISBN, description, total copies = 10, available copies = 10. Covers validation, ISBN uniqueness check, record creation, and timestamp setting.",
+      "expected_result": "Input validation passes; the ISBN uniqueness check passes; a new book record is created with the submitted values; creation and update timestamps are set; a book creation confirmation and a new book ID are returned; the catalog contains exactly one more book, retrievable by the returned ID with the submitted values."
+    },
+    {
+      "id": "dbms_2",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. No book with the given ISBN exists.",
+      "behavior_under_test": "Add a book with only required fields (title, author, total copies, available copies) and omit ISBN and description.",
+      "expected_result": "Book is created successfully without ISBN and description; confirmation and new book ID are returned."
+    },
+    {
+      "id": "dbms_3",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. No book with ISBN 'X' exists.",
+      "behavior_under_test": "Add a book with all fields provided, including optional ISBN and description.",
+      "expected_result": "Book is created with all provided values stored, including ISBN and description; new book ID returned."
+    },
+    {
+      "id": "dbms_4",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. Books table contains at least one existing book.",
+      "behavior_under_test": "Add a new book and check that the new book ID is unique and the existing books are unaffected.",
+      "expected_result": "New book ID differs from all existing book IDs; existing book records remain unchanged."
+    },
+    {
+      "id": "dbms_5",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Timestamp setting on creation: add a book and inspect its timestamps.",
+      "expected_result": "Timestamps are set on the new record at creation time (approximately the time of the operation)."
+    },
+    {
+      "id": "dbms_6",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = 1 (minimum valid, just above 0) and available copies = 1.",
+      "expected_result": "Book is created successfully with total copies 1 and available copies 1."
+    },
+    {
+      "id": "dbms_7",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = 0 (just below the lower limit).",
+      "expected_result": "Validation fails; no book record is created; an error message states that total copies must be greater than 0."
+    },
+    {
+      "id": "dbms_8",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = -1.",
+      "expected_result": "Validation fails; no record is created; an error message is returned."
+    },
+    {
+      "id": "dbms_9",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = 5 and available copies = 0 (minimum valid available).",
+      "expected_result": "Book is created successfully with available copies 0."
+    },
+    {
+      "id": "dbms_10",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = 5 and available copies = 5 (equal to total, upper limit).",
+      "expected_result": "Book is created successfully."
+    },
+    {
+      "id": "dbms_11",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with total copies = 5 and available copies = 6 (just above the upper limit).",
+      "expected_result": "Validation fails; no record is created; an error message is returned indicating available copies cannot exceed total copies."
+    },
+    {
+      "id": "dbms_12",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with available copies = -1 (just below the lower limit).",
+      "expected_result": "Validation fails; no record is created; an error message is returned indicating available copies must be non-negative."
+    },
+    {
+      "id": "dbms_13",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book with ISBN '978-3-16-148410-0' already exists.",
+      "behavior_under_test": "Add a new book with the same ISBN as an existing book.",
+      "expected_result": "ISBN uniqueness check fails; no new record is created; an error message is returned; the existing book is unchanged and the book count is unchanged."
+    },
+    {
+      "id": "dbms_14",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with missing title.",
+      "expected_result": "Validation fails; no record is created; an error message identifies the title as required."
+    },
+    {
+      "id": "dbms_15",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with missing author.",
+      "expected_result": "Validation fails; no record is created; an error message identifies the author as required."
+    },
+    {
+      "id": "dbms_16",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with missing total copies.",
+      "expected_result": "Validation fails; no record is created; an error message identifies total copies as required."
+    },
+    {
+      "id": "dbms_17",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with missing available copies.",
+      "expected_result": "Validation fails; no record is created; an error message identifies available copies as required."
+    },
+    {
+      "id": "dbms_18",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with non-integer total copies (e.g., 'abc' or 2.5).",
+      "expected_result": "Validation fails; no record is created; an error message is returned."
+    },
+    {
+      "id": "dbms_19",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book with an ISBN that is in an invalid format.",
+      "expected_result": "Validation fails; no record is created; an error message is returned (per the data validation rule that ISBN must be a valid format)."
+    },
+    {
+      "id": "dbms_20",
+      "category": "negative",
+      "precondition": "User is not authenticated as ADMIN (a MEMBER user or an unauthenticated session).",
+      "behavior_under_test": "Attempt to add a book with otherwise valid data.",
+      "expected_result": "The operation is not permitted per the ADMIN precondition; no book record is created and the catalog is unchanged."
+    },
+    {
+      "id": "dbms_21",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. Existing book count is known.",
+      "behavior_under_test": "Submit multiple validation errors at once (e.g., missing title and total copies = 0) and confirm failure atomicity.",
+      "expected_result": "Error messages are returned for validation failures; no book record is created; the book count is unchanged."
+    },
+    {
+      "id": "dbms_22",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book exists with no ISBN.",
+      "behavior_under_test": "Add another book with no ISBN (ISBN omitted).",
+      "expected_result": "Book is created successfully; the uniqueness check is applied only when an ISBN is provided, so the absence of an ISBN does not conflict."
+    },
+    {
+      "id": "dbms_23",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. Two concurrent ADMIN sessions are available. No book with ISBN 'Y' exists.",
+      "behavior_under_test": "Two sessions simultaneously add books with the same ISBN 'Y'.",
+      "expected_result": "Only one book with ISBN 'Y' exists afterward; the other request fails with an error because ISBN must be unique."
+    },
+    {
+      "id": "dbms_24",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN.",
+      "behavior_under_test": "Add a book whose title and author are empty strings.",
+      "expected_result": "Validation fails because required string fields are not satisfied; no record is created; an error message is returned."
+    },
+    {
+      "id": "dbms_25",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book with ISBN 'Z' was previously added.",
+      "behavior_under_test": "Add a book with the same title and author as an existing book but a different unique ISBN.",
+      "expected_result": "Book is created successfully because only ISBN uniqueness is required; a new book ID is returned."
+    }
+  ],
+  "SRS-008": [
+    {
+      "id": "dbms_1",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists with a known Book ID, ISBN, and copies value. Update data is valid and does not conflict with any unique constraint.",
+      "behavior_under_test": "Update an existing book's information with valid data (steps 1-4: authorization, validation, constraint check, update).",
+      "expected_result": "The book record is updated with the new values, an update confirmation is returned, and no error message is produced."
+    },
+    {
+      "id": "dbms_2",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists. Valid updated data changes several fields at once, for example title, ISBN and copies.",
+      "behavior_under_test": "Update multiple fields of a book record in a single update request.",
+      "expected_result": "All changed fields are persisted in the book record, and an update confirmation is returned."
+    },
+    {
+      "id": "dbms_3",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists. Valid update data is submitted.",
+      "behavior_under_test": "Step 5 of the workflow: logging of changes after a successful book update.",
+      "expected_result": "The change is logged as the requirement specifies (Log changes). The document does not define the log format or location, so the test verifies that a log entry exists for this update."
+    },
+    {
+      "id": "dbms_4",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists with known original values and a valid ISBN. Valid updated data is prepared. Logging is available.",
+      "behavior_under_test": "End-to-end book update workflow: verify authorization, validate data, check constraints, update the record, log changes, and return confirmation.",
+      "expected_result": "Authorization succeeds, validation and constraint checks pass, the book record reflects the updated information (postcondition), the change is logged, and an update confirmation is output with no error messages."
+    },
+    {
+      "id": "dbms_5",
+      "category": "negative",
+      "precondition": "User is authenticated with the MEMBER role (not ADMIN). A book exists.",
+      "behavior_under_test": "Attempt to update a book as a non-admin user (authorization check, step 1).",
+      "expected_result": "The update is rejected, the book record remains unchanged, and no confirmation is returned. The document does not specify the exact authorization error text."
+    },
+    {
+      "id": "dbms_6",
+      "category": "negative",
+      "precondition": "No authenticated user (unauthenticated or invalid session). A book exists.",
+      "behavior_under_test": "Attempt to update a book without valid authentication.",
+      "expected_result": "The update is not performed, the book record is unchanged, and no update confirmation is returned."
+    },
+    {
+      "id": "dbms_7",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. No book exists with the supplied Book ID.",
+      "behavior_under_test": "Update a book using a non-existent Book ID.",
+      "expected_result": "No record is updated and no update confirmation is returned. An error outcome is expected; the document does not define the exact message."
+    },
+    {
+      "id": "dbms_8",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists. The update data contains an invalid ISBN format.",
+      "behavior_under_test": "Validation of the ISBN format during book update (step 2).",
+      "expected_result": "The update is rejected with a validation error message, and the book record remains unchanged."
+    },
+    {
+      "id": "dbms_9",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. Two books exist: Book A and Book B with different ISBNs. The update to Book A sets its ISBN equal to Book B's ISBN.",
+      "behavior_under_test": "Unique ISBN constraint check during book update (step 3).",
+      "expected_result": "The update is rejected with an error, and Book A's ISBN and other fields remain unchanged. Book B is unaffected."
+    },
+    {
+      "id": "dbms_10",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists. The update data sets copies to a negative integer, for example -1.",
+      "behavior_under_test": "Validation of the non-negative copies rule during book update.",
+      "expected_result": "The update is rejected with a validation error message, and the stored copies value is unchanged."
+    },
+    {
+      "id": "dbms_11",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists. The update data sets copies to a non-integer value, for example 2.5 or text.",
+      "behavior_under_test": "Validation that book copies is an integer during update.",
+      "expected_result": "The update is rejected with a validation error message, and the book record is unchanged."
+    },
+    {
+      "id": "dbms_12",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists. The update data contains an invalid date format or illogically ordered dates.",
+      "behavior_under_test": "Date validation (valid format, logical ordering) during book update.",
+      "expected_result": "The update is rejected with a validation error message, and the book record is unchanged. This applies only if the book data includes date fields."
+    },
+    {
+      "id": "dbms_13",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists. The update request is rejected by validation or a constraint check. Logging is available.",
+      "behavior_under_test": "Atomicity and side effects of a failed update.",
+      "expected_result": "No partial changes are persisted to the book record, and an error message is returned instead of a confirmation. The document does not specify whether failed attempts are logged, so that is not asserted."
+    },
+    {
+      "id": "dbms_14",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN. A book exists with copies greater than 0.",
+      "behavior_under_test": "Update copies to exactly 0, the lower boundary of non-negative integers.",
+      "expected_result": "The update is accepted, copies is stored as 0, and a confirmation is returned."
+    },
+    {
+      "id": "dbms_15",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN. A book exists with copies equal to 0 or a positive value.",
+      "behavior_under_test": "Update copies to -1, the value immediately below the lower boundary.",
+      "expected_result": "The update is rejected with a validation error and the stored copies value is unchanged."
+    },
+    {
+      "id": "dbms_16",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN. A book exists with copies equal to 5.",
+      "behavior_under_test": "Update copies to 1, the smallest positive value just above the lower boundary.",
+      "expected_result": "The update is accepted, copies is stored as 1, and a confirmation is returned."
+    },
+    {
+      "id": "dbms_17",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book exists with a given ISBN.",
+      "behavior_under_test": "Update the book while keeping its own ISBN unchanged (resubmitting the same unique value).",
+      "expected_result": "The uniqueness check does not treat the book's own ISBN as a conflict. The update succeeds and a confirmation is returned. This is inferred from the unique-ISBN rule; the document does not state it explicitly."
+    },
+    {
+      "id": "dbms_18",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book exists. The update data is identical to the current stored values.",
+      "behavior_under_test": "Update a book with no actual changes.",
+      "expected_result": "The request is processed without a validation error. The record remains logically the same. The document does not specify whether a confirmation or log entry is produced."
+    },
+    {
+      "id": "dbms_19",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book exists and has related Borrowings referencing it.",
+      "behavior_under_test": "Update book information for a book that has existing borrowing records.",
+      "expected_result": "The book record is updated and a confirmation is returned. The Book-to-Borrowings relationship remains intact, so existing borrowings still reference the book."
+    },
+    {
+      "id": "dbms_20",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists. The Book ID supplied is not a valid integer, for example text.",
+      "behavior_under_test": "Input validation of the Book ID type (integer).",
+      "expected_result": "The update is not performed and an error is returned. The book record is unchanged."
+    }
+  ],
+  "SRS-009": [
+    {
+      "id": "dbms_1",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists in the catalog with a valid integer Book ID and has no active borrowings. The confirmation flag is set to true.",
+      "behavior_under_test": "Delete a book by Book ID with the confirmation flag set (processing steps 3 and 4: confirm deletion, remove book record).",
+      "expected_result": "The book record is removed from the catalog and a deletion confirmation is returned."
+    },
+    {
+      "id": "dbms_2",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists with no active borrowings. The confirmation flag is true. Logging is operational.",
+      "behavior_under_test": "Logging of a successful book deletion (processing step 5).",
+      "expected_result": "A log entry recording the deletion of the book is created after the book record is removed."
+    },
+    {
+      "id": "dbms_3",
+      "category": "positive",
+      "precondition": "User is authenticated as ADMIN. A book exists with no active borrowings. The confirmation flag is true. The catalog contains other books.",
+      "behavior_under_test": "End-to-end book deletion workflow: authorization check, active-borrowing check, confirmation, record removal, logging, and confirmation output.",
+      "expected_result": "Authorization passes, the active-borrowing check finds none, deletion is confirmed, the book record is removed from the catalog (postcondition), a deletion is logged, and a deletion confirmation is output. Other catalog books are unaffected."
+    },
+    {
+      "id": "dbms_4",
+      "category": "negative",
+      "precondition": "User is authenticated as a MEMBER (non-admin). A book exists with no active borrowings. The confirmation flag is true.",
+      "behavior_under_test": "Authorization verification (step 1) when a non-admin attempts to delete a book.",
+      "expected_result": "The deletion is rejected, an error message is returned, and the book record remains in the catalog. No deletion confirmation is returned."
+    },
+    {
+      "id": "dbms_5",
+      "category": "negative",
+      "precondition": "The requester is not authenticated. A book exists with no active borrowings.",
+      "behavior_under_test": "Attempt to delete a book without authentication.",
+      "expected_result": "The deletion is rejected with an error message and the book record remains unchanged."
+    },
+    {
+      "id": "dbms_6",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists with at least one active borrowing. The confirmation flag is true.",
+      "behavior_under_test": "Active-borrowing check (step 2) when deleting a book that is currently borrowed.",
+      "expected_result": "The deletion is blocked, an error message describing the constraint is returned, and the book record remains in the catalog."
+    },
+    {
+      "id": "dbms_7",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists with at least one active borrowing. The confirmation flag is true.",
+      "behavior_under_test": "Related data integrity when deletion is blocked by an active borrowing.",
+      "expected_result": "The existing Borrowing records for the book remain unchanged and no deletion is logged as completed."
+    },
+    {
+      "id": "dbms_8",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. A book exists with no active borrowings. The confirmation flag is false (not confirmed).",
+      "behavior_under_test": "Confirm deletion step (step 3) when the confirmation flag is not set.",
+      "expected_result": "The book is not deleted and remains in the catalog. No deletion confirmation is issued."
+    },
+    {
+      "id": "dbms_9",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. No book exists with the supplied Book ID. The confirmation flag is true.",
+      "behavior_under_test": "Delete a book using a non-existent Book ID.",
+      "expected_result": "No record is removed and an error message is returned. No deletion confirmation is returned."
+    },
+    {
+      "id": "dbms_10",
+      "category": "negative",
+      "precondition": "User is authenticated as ADMIN. The confirmation flag is true. The Book ID supplied is not an integer (for example, text such as 'abc').",
+      "behavior_under_test": "Input validation of Book ID, which is specified as an integer.",
+      "expected_result": "The request is rejected with an error message and no book is deleted."
+    },
+    {
+      "id": "dbms_11",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book exists whose borrowings are all non-active (for example, previously returned), with history present. The confirmation flag is true.",
+      "behavior_under_test": "Active-borrowing check when only non-active (completed) borrowings exist for the book.",
+      "expected_result": "Because no active borrowings exist, the deletion is permitted and proceeds per the processing steps; the book is removed and confirmation is returned. Any handling of the historical borrowing records beyond this is not specified by the document."
+    },
+    {
+      "id": "dbms_12",
+      "category": "edge",
+      "precondition": "User is authenticated as ADMIN. A book exists with no active borrowings. The book was already deleted by a previous successful request. The confirmation flag is true.",
+      "behavior_under_test": "Repeat deletion of the same Book ID.",
+      "expected_result": "The second request finds no book record, returns an error message, and does not remove any other record."
+    },
+    {
+      "id": "dbms_13",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN. Books exist with a book that has 0 copies and no active borrowings. The confirmation flag is true.",
+      "behavior_under_test": "Delete a book whose copies count is at the lower bound of 0 (non-negative integer).",
+      "expected_result": "The deletion succeeds because there are no active borrowings; the book is removed and confirmation is returned."
+    },
+    {
+      "id": "dbms_14",
+      "category": "boundary",
+      "precondition": "User is authenticated as ADMIN. A book has exactly one active borrowing. The confirmation flag is true.",
+      "behavior_under_test": "Active-borrowing check at the threshold of exactly one active borrowing (just above zero).",
+      "expected_result": "The deletion is blocked with an error message and the book remains in the catalog."
+    }
+  ],
+  "SRS-010": [
+    {
+      "id": "dbms_1",
+      "category": "positive",
+      "precondition": "User is authenticated as MEMBER; book exists with at least 1 available copy; user is under the borrowing limit; no duration supplied",
+      "behavior_under_test": "Borrow an available book with the default duration (the optional duration input is omitted)",
+      "expected_result": "A borrowing record is created linking the user and the book; the due date is set to 30 days after the borrow date; the book's availability is updated; a borrowing confirmation and due date information are returned"
+    },
+    {
+      "id": "dbms_2",
+      "category": "positive",
+      "precondition": "User is authenticated as MEMBER; book is available; user is under the borrowing limit; an explicit valid borrowing duration (e.g., 14 days) is supplied",
+      "behavior_under_test": "Borrow a book with an explicitly specified borrowing duration",
+      "expected_result": "The borrowing record is created and the due date is set to the borrow date plus the supplied duration; confirmation and due date information are returned; book availability is updated"
+    },
+    {
+      "id": "dbms_3",
+      "category": "positive",
+      "precondition": "User is authenticated as MEMBER; book is available; user is under the borrowing limit; the borrowings table and the book's availability are in known states",
+      "behavior_under_test": "End-to-end borrowing workflow: verify authorization, check availability, check limits, create the borrowing record, update availability, set due date, and return outputs",
+      "expected_result": "All steps complete in order: the user is authorized; availability and limit checks pass; one new borrowing record references the correct User ID and Book ID; the book's available copies are updated (decremented); the due date is set (default 30 days); a borrowing confirmation with due date information is output; no error message is shown"
+    },
+    {
+      "id": "dbms_4",
+      "category": "positive",
+      "precondition": "Book has exactly 1 available copy; user is an authenticated MEMBER under the borrowing limit",
+      "behavior_under_test": "Borrow the last available copy of a book",
+      "expected_result": "Borrowing succeeds; the book's available copies become 0 (non-negative) and the book is no longer available; the borrowing record and confirmation are produced"
+    },
+    {
+      "id": "dbms_5",
+      "category": "boundary",
+      "precondition": "Book has 0 available copies (copies are a non-negative integer); user is an authenticated MEMBER under the limit",
+      "behavior_under_test": "Attempt to borrow a book with zero available copies",
+      "expected_result": "The borrow is rejected with an error message about availability; no borrowing record is created; the book's availability is unchanged and does not go negative"
+    },
+    {
+      "id": "dbms_6",
+      "category": "negative",
+      "precondition": "User is not authenticated (no valid session)",
+      "behavior_under_test": "Attempt to borrow a book without authentication",
+      "expected_result": "The authorization check fails; the request is rejected with an error message; no borrowing record is created and book availability is unchanged"
+    },
+    {
+      "id": "dbms_7",
+      "category": "negative",
+      "precondition": "User is authenticated with the ADMINISTRATOR role (not MEMBER); book is available",
+      "behavior_under_test": "Attempt to borrow a book as a non-MEMBER user",
+      "expected_result": "Authorization verification fails because the precondition requires the MEMBER role; an error message is returned; no borrowing record is created and availability is unchanged"
+    },
+    {
+      "id": "dbms_8",
+      "category": "negative",
+      "precondition": "User is an authenticated MEMBER who has reached the maximum borrowing limit; book is available",
+      "behavior_under_test": "Attempt to borrow a book when the user's borrowing limit has been reached",
+      "expected_result": "The request is rejected with an error message about the borrowing limit; no borrowing record is created; book availability is unchanged"
+    },
+    {
+      "id": "dbms_9",
+      "category": "negative",
+      "precondition": "User is an authenticated MEMBER; the supplied Book ID does not correspond to any existing book",
+      "behavior_under_test": "Attempt to borrow a non-existent book",
+      "expected_result": "The request is rejected with an error message; no borrowing record is created; no book availability is changed"
+    },
+    {
+      "id": "dbms_10",
+      "category": "negative",
+      "precondition": "User is an authenticated MEMBER; the Book ID input is non-integer (e.g., 'abc')",
+      "behavior_under_test": "Submit a borrow request with an invalid Book ID type",
+      "expected_result": "The input is rejected with an error message; no borrowing record is created and no data is modified"
+    },
+    {
+      "id": "dbms_11",
+      "category": "boundary",
+      "precondition": "User is an authenticated MEMBER with exactly one borrowing fewer than the limit; book is available",
+      "behavior_under_test": "Borrow a book that brings the user exactly to the borrowing limit",
+      "expected_result": "The borrow succeeds, since the limit is not exceeded; the record is created and availability is updated"
+    },
+    {
+      "id": "dbms_12",
+      "category": "edge",
+      "precondition": "Two authenticated MEMBERs simultaneously attempt to borrow the same book that has exactly 1 available copy",
+      "behavior_under_test": "Concurrent borrow requests for the last available copy",
+      "expected_result": "Only one borrow succeeds, with a record created and availability updated to 0; the other is rejected with an availability error; available copies never become negative"
+    },
+    {
+      "id": "dbms_13",
+      "category": "negative",
+      "precondition": "User is an authenticated MEMBER; book is available; a borrowing duration that is invalid (e.g., zero, negative, or non-numeric) is supplied",
+      "behavior_under_test": "Borrow with an invalid borrowing duration",
+      "expected_result": "The request is rejected with an error message and no borrowing record is created, or the system's validation rules for logical date ordering are enforced so the due date never precedes the borrow date; no availability change occurs on rejection"
+    },
+    {
+      "id": "dbms_14",
+      "category": "edge",
+      "precondition": "A failure occurs after the borrowing record is created but before the book availability update completes (e.g., simulated error)",
+      "behavior_under_test": "Atomicity of the borrowing workflow across record creation and availability update",
+      "expected_result": "Borrowing record creation and availability update are consistent: either both are applied or neither is, leaving no borrowing record without a matching availability change"
+    }
+  ],
+  "SRS-013": [
+    {
+      "id": "dbms_1",
+      "category": "positive",
+      "precondition": "An authenticated member exists. An active borrowing record with a valid Borrowing ID exists for that member and a book. No fine applies. Return date is not supplied.",
+      "behavior_under_test": "Submit a book return with a valid Borrowing ID and no return date, so the default of the current date is used.",
+      "expected_result": "The return is accepted. The return date defaults to the current date. The borrowing status is updated to returned. The book availability is updated. A return confirmation is output. A return transaction is logged."
+    },
+    {
+      "id": "dbms_2",
+      "category": "positive",
+      "precondition": "An authenticated member exists. A valid borrowing record exists. An explicit valid return date is supplied that is logically ordered relative to the borrow date.",
+      "behavior_under_test": "Submit a book return with an explicit return date.",
+      "expected_result": "The return is processed using the supplied return date. The borrowing status is updated, book availability is updated, and a confirmation is returned."
+    },
+    {
+      "id": "dbms_3",
+      "category": "positive",
+      "precondition": "An authenticated member has a valid borrowing record. The book currently has a known number of available copies, which is a non-negative integer.",
+      "behavior_under_test": "Update book availability after a successful return.",
+      "expected_result": "The book availability is updated to reflect the returned copy. Book copies remain a non-negative integer."
+    },
+    {
+      "id": "dbms_4",
+      "category": "positive",
+      "precondition": "An authenticated member has a valid borrowing record that is returned late, so a fine applies under the system's fine rules.",
+      "behavior_under_test": "Calculate fines during return when a fine is applicable.",
+      "expected_result": "The fine is calculated, and fine information is included in the output along with the return confirmation."
+    },
+    {
+      "id": "dbms_5",
+      "category": "positive",
+      "precondition": "An authenticated member has a valid borrowing record returned in a way that no fine applies.",
+      "behavior_under_test": "Return without a fine.",
+      "expected_result": "The return confirmation is output without fine information, as fine information is output only if applicable."
+    },
+    {
+      "id": "dbms_6",
+      "category": "positive",
+      "precondition": "An authenticated member has a valid borrowing record. The borrowing has existing history records, and the audit trail is accessible.",
+      "behavior_under_test": "Log the return transaction in Borrowing History.",
+      "expected_result": "A history record linked to the borrowing (1:N relationship) is created that records the return transaction."
+    },
+    {
+      "id": "dbms_7",
+      "category": "positive",
+      "precondition": "An authenticated member has a valid, active borrowing record linked to an existing user and book. A late return date is used so a fine applies. The history table is accessible.",
+      "behavior_under_test": "End-to-end return workflow: verify authorization, validate the borrowing, update status, update availability, calculate the fine, log the transaction, and output the results.",
+      "expected_result": "Authorization is verified and the borrowing is validated. The borrowing status is updated to returned. The book availability is updated. The fine is calculated. A return transaction is logged in the history. The output includes a return confirmation and fine information. The postconditions hold: the book is returned and availability is updated."
+    },
+    {
+      "id": "dbms_8",
+      "category": "positive",
+      "precondition": "An authenticated member has a valid, active borrowing record. The return is on time, so no fine applies. No return date is supplied.",
+      "behavior_under_test": "End-to-end return workflow without a fine, using the default return date.",
+      "expected_result": "The status is updated, availability is updated, the return date is the current date, and the transaction is logged. A confirmation is output with no fine information. The postconditions are met."
+    },
+    {
+      "id": "dbms_9",
+      "category": "negative",
+      "precondition": "The user is not authenticated, but a valid borrowing record exists.",
+      "behavior_under_test": "Attempt a return without authentication, which fails the user authorization verification step.",
+      "expected_result": "The return is rejected with an error message. The borrowing status, book availability, and history are not changed."
+    },
+    {
+      "id": "dbms_10",
+      "category": "negative",
+      "precondition": "An authenticated member exists. The Borrowing ID does not match any borrowing record.",
+      "behavior_under_test": "Validate the borrowing record using a nonexistent Borrowing ID.",
+      "expected_result": "The return is rejected with an error message for an invalid return. No data is modified and no availability change occurs."
+    },
+    {
+      "id": "dbms_11",
+      "category": "negative",
+      "precondition": "An authenticated member exists. The Borrowing ID input is non-integer, such as the string 'abc'.",
+      "behavior_under_test": "Submit a return with a Borrowing ID of an invalid type.",
+      "expected_result": "The return is rejected with an error message. No data is modified."
+    },
+    {
+      "id": "dbms_12",
+      "category": "negative",
+      "precondition": "An authenticated member exists. The borrowing record has already been returned.",
+      "behavior_under_test": "Attempt to return a borrowing that is already returned.",
+      "expected_result": "The return is rejected with an error message as an invalid return. Book availability is not incremented again and no duplicate return is logged."
+    },
+    {
+      "id": "dbms_13",
+      "category": "negative",
+      "precondition": "An authenticated member exists. A valid borrowing record exists. The supplied return date is invalid in format, such as '2024-13-45'.",
+      "behavior_under_test": "Submit a return with an invalid date format.",
+      "expected_result": "The return is rejected with an error message. No data is modified."
+    },
+    {
+      "id": "dbms_14",
+      "category": "negative",
+      "precondition": "An authenticated member exists. A valid borrowing record exists with a known borrow date. The supplied return date is earlier than the borrow date.",
+      "behavior_under_test": "Validate the logical date ordering of the return date relative to the borrow date.",
+      "expected_result": "The return is rejected with an error message because the date ordering is not logical. No data is modified."
+    },
+    {
+      "id": "dbms_15",
+      "category": "negative",
+      "precondition": "An authenticated member exists. A valid borrowing record exists that belongs to a different user.",
+      "behavior_under_test": "Verify user authorization when a member attempts to return a borrowing belonging to another user.",
+      "expected_result": "The return is rejected with an authorization or invalid-return error message, and no data is modified."
+    },
+    {
+      "id": "dbms_16",
+      "category": "boundary",
+      "precondition": "An authenticated member has a valid borrowing record. The supplied return date equals the borrow date.",
+      "behavior_under_test": "Return on the same day as the borrow date, which is the lowest logically ordered date.",
+      "expected_result": "The return is accepted as logically ordered, with no fine, and is processed successfully."
+    },
+    {
+      "id": "dbms_17",
+      "category": "boundary",
+      "precondition": "An authenticated member has a valid borrowing record with a known due date. The return date equals the due date.",
+      "behavior_under_test": "Return on the due date, immediately before the point where a fine could apply.",
+      "expected_result": "The return is processed. Fine behavior follows the system's fine rules. The document does not specify the fine rules, so no fine is expected when the return is not late."
+    },
+    {
+      "id": "dbms_18",
+      "category": "boundary",
+      "precondition": "An authenticated member has a valid borrowing record with a known due date. The return date is one day after the due date.",
+      "behavior_under_test": "Return one day after the due date, immediately above the on-time boundary.",
+      "expected_result": "The return is processed and fine calculation is performed. If a fine applies, fine information is output. The exact amount depends on the unspecified fine rules."
+    },
+    {
+      "id": "dbms_19",
+      "category": "boundary",
+      "precondition": "An authenticated member has a valid borrowing record. A book has zero available copies because all copies are borrowed.",
+      "behavior_under_test": "Return a copy of a book whose availability is at the lower limit of 0.",
+      "expected_result": "The availability is updated to reflect the returned copy, giving a non-negative integer value, and the return succeeds."
+    },
+    {
+      "id": "dbms_20",
+      "category": "boundary",
+      "precondition": "An authenticated member exists. The Borrowing ID is 0 or negative, below the smallest valid integer ID.",
+      "behavior_under_test": "Submit a return with a Borrowing ID of 0 or a negative integer.",
+      "expected_result": "The return is rejected with an error message because no valid borrowing record is found. No data is modified."
+    },
+    {
+      "id": "dbms_21",
+      "category": "edge",
+      "precondition": "An authenticated member has a valid borrowing record. The Borrowing ID is provided but the return date is omitted or null.",
+      "behavior_under_test": "Return with the optional return date left empty.",
+      "expected_result": "The current date is used as the return date, and the return is processed successfully."
+    },
+    {
+      "id": "dbms_22",
+      "category": "edge",
+      "precondition": "An authenticated member has a valid borrowing record. The return transaction fails partway through processing, for example during the availability update.",
+      "behavior_under_test": "Failure handling during the multi-step return processing.",
+      "expected_result": "An error message is output. The document does not specify the rollback mechanism, so only an observable error is asserted. The postconditions of a completed return (returned book, updated availability) are not claimed for the failed return."
+    },
+    {
+      "id": "dbms_23",
+      "category": "edge",
+      "precondition": "An authenticated member exists. The Borrowing ID is missing entirely from the request.",
+      "behavior_under_test": "Submit a return without the required Borrowing ID input.",
+      "expected_result": "The return is rejected with an error message for an invalid return. No data is modified."
+    },
+    {
+      "id": "dbms_24",
+      "category": "edge",
+      "precondition": "An authenticated member has a valid borrowing record. Two return requests for the same Borrowing ID are submitted concurrently.",
+      "behavior_under_test": "Concurrent duplicate returns of the same borrowing.",
+      "expected_result": "Only one return takes effect. The other is rejected as an invalid return, and availability is incremented only once. This follows from the validation of the borrowing record and the postcondition that availability is updated."
+    }
+  ]
+}
