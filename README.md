@@ -26,7 +26,6 @@ The repository also retains an earlier Python/pytest requirement-to-test generat
 | Backend regression tests | 89 passed locally | Automated verification of backend functionality |
 | Backend CI | Configured | GitHub Actions with temporary PostgreSQL 17 service |
 
-The earlier R2 benchmark and PostgreSQL support were merged into `main` in [PR #3](https://github.com/Kayuhnaise/AI-Assisted-Test-Case-Generator/pull/3). The newer R1 improvements, Claude integration, and Library Management evaluation artifacts are on `feature/r1-integration` pending review.
 
 ## Problem and motivation
 
