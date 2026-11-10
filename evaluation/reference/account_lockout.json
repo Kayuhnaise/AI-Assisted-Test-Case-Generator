@@ -6,27 +6,82 @@
     {
       "id": "pos_1",
       "category": "positive",
-      "description": "A user with 2 consecutive failed attempts is still allowed to log in."
+      "description": "A user with 2 consecutive failed attempts is still allowed to log in.",
+      "requirement_clause": "five consecutive failed login attempts",
+      "precondition": "2 consecutive failed attempts",
+      "behavior_under_test": "call check_login(attempts=2)",
+      "expected_result": "returns \"allowed\"",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "attempts",
+          "value": 2
+        }
+      ]
     },
     {
       "id": "bnd_1",
       "category": "boundary",
-      "description": "A user with exactly 4 consecutive failed attempts is still allowed to log in (immediately below the limit)."
+      "description": "A user with exactly 4 consecutive failed attempts is still allowed to log in (immediately below the limit).",
+      "requirement_clause": "five consecutive failed login attempts",
+      "precondition": "exactly 4 consecutive failed attempts, immediately below the limit",
+      "behavior_under_test": "call check_login(attempts=4)",
+      "expected_result": "returns \"allowed\"",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "attempts",
+          "value": 4
+        }
+      ]
     },
     {
       "id": "bnd_2",
       "category": "boundary",
-      "description": "A user with exactly 5 consecutive failed attempts is locked out (the stated threshold)."
+      "description": "A user with exactly 5 consecutive failed attempts is locked out (the stated threshold).",
+      "requirement_clause": "lock an account after five consecutive failed login attempts",
+      "precondition": "exactly 5 consecutive failed attempts, the stated threshold",
+      "behavior_under_test": "call check_login(attempts=5)",
+      "expected_result": "returns \"locked\"",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "attempts",
+          "value": 5
+        }
+      ]
     },
     {
       "id": "neg_1",
       "category": "negative",
-      "description": "The attempt count is negative (e.g. -1), which cannot occur under normal use. The requirement does not define expected behavior for this case; it should either be rejected/validated or explicitly documented as always-allowed, rather than silently passing through as it does today."
+      "description": "The attempt count is negative (e.g. -1), which cannot occur under normal use. The requirement does not define expected behavior for this case; it should either be rejected/validated or explicitly documented as always-allowed, rather than silently passing through as it does today.",
+      "requirement_clause": "five consecutive failed login attempts",
+      "precondition": "attempt count is negative (-1)",
+      "behavior_under_test": "call check_login(attempts=-1)",
+      "expected_result": "The requirement does not define behavior for a negative attempt count; the implementation currently returns \"allowed\".",
+      "expected_outcome_kind": "unspecified",
+      "example_inputs": [
+        {
+          "name": "attempts",
+          "value": -1
+        }
+      ]
     },
     {
       "id": "edge_1",
       "category": "edge",
-      "description": "The attempt count is a non-integer value (e.g. a string), which the current implementation does not guard against. The requirement implies a countable integer; invalid types should be rejected rather than causing an unhandled error."
+      "description": "The attempt count is a non-integer value (e.g. a string), which the current implementation does not guard against. The requirement implies a countable integer; invalid types should be rejected rather than causing an unhandled error.",
+      "requirement_clause": "five consecutive failed login attempts",
+      "precondition": "attempt count is a non-integer value (a string)",
+      "behavior_under_test": "call check_login(attempts=\"five\")",
+      "expected_result": "The requirement does not define behavior for non-integer input; the implementation currently raises TypeError.",
+      "expected_outcome_kind": "unspecified",
+      "example_inputs": [
+        {
+          "name": "attempts",
+          "value": "five"
+        }
+      ]
     }
   ],
   "notes": "Source function has no input validation. neg_1 and edge_1 exist to surface that gap; they are reference-only cases the AI-generated scenarios should ideally also flag, since the requirement is silent on invalid input."

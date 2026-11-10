@@ -6,32 +6,98 @@
     {
       "id": "pos_1",
       "category": "positive",
-      "description": "A username of typical length (e.g. 8 characters) is valid."
+      "description": "A username of typical length (e.g. 8 characters) is valid.",
+      "requirement_clause": "Usernames must be between 3 and 20 characters long",
+      "precondition": "username of typical length (8 characters)",
+      "behavior_under_test": "call is_valid_username(username=\"abcdefgh\")",
+      "expected_result": "returns True",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "username",
+          "value": "abcdefgh"
+        }
+      ]
     },
     {
       "id": "bnd_1",
       "category": "boundary",
-      "description": "A username of exactly 3 characters is valid (the lower bound, inclusive)."
+      "description": "A username of exactly 3 characters is valid (the lower bound, inclusive).",
+      "requirement_clause": "between 3 and 20 characters long, inclusive",
+      "precondition": "username of exactly 3 characters, the inclusive lower bound",
+      "behavior_under_test": "call is_valid_username(username=\"abc\")",
+      "expected_result": "returns True",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "username",
+          "value": "abc"
+        }
+      ]
     },
     {
       "id": "bnd_2",
       "category": "boundary",
-      "description": "A username of exactly 20 characters is valid (the upper bound, inclusive)."
+      "description": "A username of exactly 20 characters is valid (the upper bound, inclusive).",
+      "requirement_clause": "between 3 and 20 characters long, inclusive",
+      "precondition": "username of exactly 20 characters, the inclusive upper bound",
+      "behavior_under_test": "call is_valid_username with a 20-character username",
+      "expected_result": "returns True",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "username",
+          "value": "aaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
     },
     {
       "id": "neg_1",
       "category": "negative",
-      "description": "A username of 2 characters is invalid (one below the lower bound)."
+      "description": "A username of 2 characters is invalid (one below the lower bound).",
+      "requirement_clause": "between 3 and 20 characters long, inclusive",
+      "precondition": "username of 2 characters, one below the lower bound",
+      "behavior_under_test": "call is_valid_username(username=\"ab\")",
+      "expected_result": "returns False",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "username",
+          "value": "ab"
+        }
+      ]
     },
     {
       "id": "neg_2",
       "category": "negative",
-      "description": "A username of 21 characters is invalid (one above the upper bound)."
+      "description": "A username of 21 characters is invalid (one above the upper bound).",
+      "requirement_clause": "between 3 and 20 characters long, inclusive",
+      "precondition": "username of 21 characters, one above the upper bound",
+      "behavior_under_test": "call is_valid_username with a 21-character username",
+      "expected_result": "returns False",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "username",
+          "value": "aaaaaaaaaaaaaaaaaaaaa"
+        }
+      ]
     },
     {
       "id": "edge_1",
       "category": "edge",
-      "description": "An empty username (0 characters) is invalid, well outside the valid range."
+      "description": "An empty username (0 characters) is invalid, well outside the valid range.",
+      "requirement_clause": "Usernames must be between 3 and 20 characters long",
+      "precondition": "empty username (0 characters)",
+      "behavior_under_test": "call is_valid_username(username=\"\")",
+      "expected_result": "returns False",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "username",
+          "value": ""
+        }
+      ]
     }
   ],
   "notes": "This requirement's boundaries are fully explicit ('between 3 and 20, inclusive'), so unlike the other three requirements there is no ambiguous or unvalidated input case worth flagging as a gap — every scenario here maps directly to stated behavior."

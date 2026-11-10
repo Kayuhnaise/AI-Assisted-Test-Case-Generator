@@ -36,20 +36,57 @@ class ScenarioInput(BaseModel):
         return source_code
 
 
-class Scenario(BaseModel):
-    id: str
-    category: Literal[
-        "positive",
-        "negative",
-        "boundary",
-        "edge"
-    ]
-    description: str = Field(
-        ...,
+class ScenarioCore(BaseModel):
+    """
+    Structured intermediate representation shared by the Python and
+    DBMS pipelines. Every scenario declares its category, the
+    condition it targets, and the outcome it expects as separate
+    fields so that downstream steps and evaluation can compare fields
+    instead of interpreting free text.
+    """
+
+    id: str = Field(min_length=1)
+    category: Literal["positive", "negative", "boundary", "edge"]
+    precondition: str = Field(
+        min_length=1,
+        description="The state, data, or input condition the scenario targets",
+    )
+    behavior_under_test: str = Field(
+        min_length=1,
+        description="The operation or behavior being exercised",
+    )
+    expected_result: str = Field(
+        min_length=1,
+        description="The observable outcome required by the requirement",
+    )
+
+
+class InputArgument(BaseModel):
+    name: str = Field(
+        min_length=1,
+        description="Parameter name of a function in the source code",
+    )
+    value: str | int | float | bool | None = Field(
+        description="Concrete value passed for this parameter",
+    )
+
+
+class Scenario(ScenarioCore):
+    requirement_clause: str = Field(
+        min_length=1,
         description=(
-            "The expected behavior or boundary condition this "
-            "scenario covers"
-        )
+            "Exact, verbatim quote of the requirement text this "
+            "scenario targets"
+        ),
+    )
+    expected_outcome_kind: Literal["success", "error", "unspecified"] = Field(
+        description=(
+            "success: returns a result; error: raises or rejects; "
+            "unspecified: the requirement does not define the outcome"
+        ),
+    )
+    example_inputs: List[InputArgument] = Field(
+        description="Concrete argument values that exercise the scenario",
     )
 
 
@@ -70,12 +107,8 @@ class DBMSRequirementInput(BaseModel):
     )
 
 
-class DBMSScenario(BaseModel):
-    id: str = Field(min_length=1)
-    category: Literal["positive", "negative", "boundary", "edge"]
-    precondition: str = Field(min_length=1)
-    behavior_under_test: str = Field(min_length=1)
-    expected_result: str = Field(min_length=1)
+class DBMSScenario(ScenarioCore):
+    pass
 
 
 class GeneratedDBMSScenarios(BaseModel):
@@ -130,6 +163,24 @@ class DBMSCoverageResponse(BaseModel):
     uncovered_expert_scenario_ids: List[str]
 
 
+class ScenarioCoverageMatch(BaseModel):
+    reference_scenario_id: str
+    generated_scenario_id: str
+    matched_by: Literal["example_inputs", "judge"]
+
+
+class ScenarioCoverageResponse(BaseModel):
+    reference_scenario_count: int
+    generated_scenario_count: int
+    covered_scenario_count: int
+    coverage_percentage: float
+    matches: List[ScenarioCoverageMatch]
+    uncovered_reference_scenario_ids: List[str]
+    aligned_scenario_count: int
+    alignment_percentage: float
+    misaligned_scenario_ids: List[str]
+
+
 class TestCase(BaseModel):
     id: str
     scenario_id: str
@@ -163,10 +214,18 @@ class PytestExecutionResult(BaseModel):
 
 class GeneratedTestCases(BaseModel):
     test_cases: List[TestCase]
-    
+
+
 class TestCaseResponse(BaseModel):
     requirement: str
     scenarios: List[Scenario]
+    untested_scenario_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Scenarios whose outcome the requirement does not specify; "
+            "no test is generated for them"
+        ),
+    )
     test_cases: List[TestCase]
     pytest_code: str
     pytest_result: PytestExecutionResult

@@ -22,6 +22,21 @@ def _ollama_response(content: str) -> SimpleNamespace:
     return SimpleNamespace(message=SimpleNamespace(content=content))
 
 
+def make_scenario(**overrides) -> Scenario:
+    fields = {
+        "id": "pos_1",
+        "category": "positive",
+        "requirement_clause": "A valid example requirement.",
+        "precondition": "A normal case.",
+        "behavior_under_test": "Call example().",
+        "expected_result": "It succeeds.",
+        "expected_outcome_kind": "success",
+        "example_inputs": [],
+    }
+    fields.update(overrides)
+    return Scenario(**fields)
+
+
 def test_generate_identifies_scenarios_then_executes_runnable_pytest():
     source_code = (
         "def check_login(attempts: int) -> str:\n"
@@ -32,7 +47,12 @@ def test_generate_identifies_scenarios_then_executes_runnable_pytest():
     scenario = Scenario(
         id="bnd_1",
         category="boundary",
-        description="Exactly five failed attempts locks the account.",
+        requirement_clause="lock an account after five consecutive failed login attempts",
+        precondition="Exactly five failed attempts.",
+        behavior_under_test="Call check_login with attempts=5.",
+        expected_result="Exactly five failed attempts locks the account.",
+        expected_outcome_kind="success",
+        example_inputs=[{"name": "attempts", "value": 5}],
     )
     test_case = GeneratedCase(
         id="tc_1",
@@ -85,7 +105,12 @@ def test_generate_returns_failed_pytest_result_for_failing_assertion():
     scenario = Scenario(
         id="pos_1",
         category="positive",
-        description="The example returns true.",
+        requirement_clause="An example function returns true.",
+        precondition="No inputs.",
+        behavior_under_test="Call example().",
+        expected_result="The example returns true.",
+        expected_outcome_kind="success",
+        example_inputs=[],
     )
     test_case = GeneratedCase(
         id="tc_1",
@@ -138,8 +163,8 @@ def test_generate_rejects_test_cases_that_do_not_cover_all_scenarios():
     from app.generator import generate_test_cases
 
     scenarios = [
-        Scenario(id="pos_1", category="positive", description="A normal case."),
-        Scenario(id="bnd_1", category="boundary", description="The limit case."),
+        make_scenario(id="pos_1", category="positive"),
+        make_scenario(id="bnd_1", category="boundary"),
     ]
     only_test_case = GeneratedCase(
         id="tc_1",

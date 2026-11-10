@@ -15,6 +15,8 @@ from app.prompts import (
     build_dbms_scenario_prompt,
 )
 
+from app.scenario_coverage import validate_pair_judgments
+
 from app.dbms_chunking import (
     chunk_by_requirement,
     chunk_document,
@@ -246,16 +248,7 @@ def evaluate_dbms_scenario_coverage(
         for expert_id in expert_ids
         for extracted_id in extracted_ids
     }
-    judged_pairs = [
-        (item.expert_scenario_id, item.extracted_scenario_id)
-        for item in judgments
-    ]
-    if len(set(judged_pairs)) != len(judged_pairs):
-        raise ValueError("Coverage evaluator returned duplicate scenario pairs")
-    if set(judged_pairs) != expected_pairs:
-        raise ValueError(
-            "Coverage evaluator must judge every expert/extracted scenario pair"
-        )
+    validate_pair_judgments(judgments, expected_pairs)
 
     match_for_expert: dict[str, str] = {}
     for judgment in judgments:

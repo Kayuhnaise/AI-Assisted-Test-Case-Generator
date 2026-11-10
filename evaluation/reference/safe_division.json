@@ -6,27 +6,102 @@
     {
       "id": "pos_1",
       "category": "positive",
-      "description": "Dividing two ordinary nonzero numbers (e.g. 10 by 2) returns the correct quotient."
+      "description": "Dividing two ordinary nonzero numbers (e.g. 10 by 2) returns the correct quotient.",
+      "requirement_clause": "compute the result of dividing two numbers",
+      "precondition": "two ordinary nonzero numbers (10 and 2)",
+      "behavior_under_test": "call divide(numerator=10, denominator=2)",
+      "expected_result": "returns 5.0",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "numerator",
+          "value": 10
+        },
+        {
+          "name": "denominator",
+          "value": 2
+        }
+      ]
     },
     {
       "id": "neg_1",
       "category": "negative",
-      "description": "Dividing by zero is rejected: the system raises an error instead of returning a result, per the explicit requirement."
+      "description": "Dividing by zero is rejected: the system raises an error instead of returning a result, per the explicit requirement.",
+      "requirement_clause": "shall reject division by zero",
+      "precondition": "denominator is exactly 0",
+      "behavior_under_test": "call divide(numerator=10, denominator=0)",
+      "expected_result": "raises ValueError instead of returning a result",
+      "expected_outcome_kind": "error",
+      "example_inputs": [
+        {
+          "name": "numerator",
+          "value": 10
+        },
+        {
+          "name": "denominator",
+          "value": 0
+        }
+      ]
     },
     {
       "id": "bnd_1",
       "category": "boundary",
-      "description": "Dividing by a very small nonzero denominator (e.g. 0.0001) succeeds and returns a large but valid result, distinguishing 'near zero' from 'exactly zero'."
+      "description": "Dividing by a very small nonzero denominator (e.g. 0.0001) succeeds and returns a large but valid result, distinguishing 'near zero' from 'exactly zero'.",
+      "requirement_clause": "shall reject division by zero",
+      "precondition": "very small nonzero denominator (0.0001), near but not equal to zero",
+      "behavior_under_test": "call divide(numerator=1, denominator=0.0001)",
+      "expected_result": "succeeds and returns 10000.0",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "numerator",
+          "value": 1
+        },
+        {
+          "name": "denominator",
+          "value": 0.0001
+        }
+      ]
     },
     {
       "id": "edge_1",
       "category": "edge",
-      "description": "A numerator of zero divided by a nonzero denominator returns 0, which is valid and distinct from the division-by-zero error case."
+      "description": "A numerator of zero divided by a nonzero denominator returns 0, which is valid and distinct from the division-by-zero error case.",
+      "requirement_clause": "compute the result of dividing two numbers",
+      "precondition": "numerator is 0 with a nonzero denominator",
+      "behavior_under_test": "call divide(numerator=0, denominator=5)",
+      "expected_result": "returns 0.0, distinct from the division-by-zero error",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "numerator",
+          "value": 0
+        },
+        {
+          "name": "denominator",
+          "value": 5
+        }
+      ]
     },
     {
       "id": "edge_2",
       "category": "edge",
-      "description": "Both numerator and denominator are negative (e.g. -10 / -2), returning a correct positive result."
+      "description": "Both numerator and denominator are negative (e.g. -10 / -2), returning a correct positive result.",
+      "requirement_clause": "compute the result of dividing two numbers",
+      "precondition": "both numerator and denominator are negative",
+      "behavior_under_test": "call divide(numerator=-10, denominator=-2)",
+      "expected_result": "returns 5.0",
+      "expected_outcome_kind": "success",
+      "example_inputs": [
+        {
+          "name": "numerator",
+          "value": -10
+        },
+        {
+          "name": "denominator",
+          "value": -2
+        }
+      ]
     }
   ],
   "notes": "This is the one reference requirement whose negative/error-path behavior is explicitly stated ('shall reject division by zero'), so neg_1 tests requirement-mandated error handling rather than an unvalidated gap like in the other files."
