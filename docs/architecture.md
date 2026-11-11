@@ -229,7 +229,7 @@ Structured Scenarios
 
 ### Structured scenario representation
 
-Stage 1 does not produce free-text scenario descriptions. Each scenario is a typed record. This is a lightweight, machine-checkable intermediate representation between the Scenario Generator and the Test Generator, playing the role that the DSL plays in Req2Test.
+Stage 1 does not produce free-text scenario descriptions. Each scenario is a typed record. This is a lightweight, machine-checkable intermediate representation between the Scenario Generator and the Test Generator, playing the role that the DSL plays in Req2Test (see [`related_work.md`](related_work.md)).
 
 Both pipelines share one core schema (`ScenarioCore` in `backend/app/models.py`):
 
