@@ -380,6 +380,13 @@ These were manually assessed historical Python scenarios, not DBMS R1 coverage m
 
 Historical issues included a missed account-lockout boundary, incorrect order-discount assertions, missing `pytest` imports, scenario-category mismatches, hallucinated function names, and local Ollama inference failures. These results motivated separate requirements-coverage and independent-correctness checks.
 
+## Related work
+
+Two papers shaped the design and evaluation. Full summaries and their mapping to this project are in [`docs/related_work.md`](docs/related_work.md).
+
+- **Req2Test** (França & Benitti, ACM SAC '26, [doi:10.1145/3748522.3780013](https://doi.org/10.1145/3748522.3780013)) generates unit tests from user stories using a DSL-guided planning stage before code generation. Following its approach, the Scenario Generator now emits a **structured, machine-checkable scenario schema**: each scenario declares its category, input condition, expected outcome, and the requirement clause it traces to. Free-text descriptions are gone. This lets Scenario-Type Coverage and Requirement Alignment be scored on structured fields (`backend/app/scenario_coverage.py`).
+- **TestBench** (Zhang et al., *Frontiers of Computer Science*, 2025) benchmarks class-level LLM test generation and shows that high line coverage (92.5% for GPT-4) can coexist with a low mutation kill rate (26.1%). This motivated reporting coverage, executability, and correctness separately, and a planned mutation-testing metric (not yet implemented).
+
 ## Limitations and responsible use
 
 - **Small and curated datasets:** The historical R2 SQL benchmark has 12 cases; Library Management R1 has 19 reference scenarios; the historical Python benchmark has 21. None supports broad generalization.

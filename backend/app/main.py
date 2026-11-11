@@ -65,6 +65,10 @@ def generate(request: ScenarioInput):
     return TestCaseResponse(
         requirement=request.requirement,
         scenarios=scenarios,
+        untested_scenario_ids=[
+            scenario.id for scenario in scenarios
+            if scenario.expected_outcome_kind == "unspecified"
+        ],
         test_cases=test_cases,
         pytest_code=pytest_code,
         pytest_result=pytest_result,

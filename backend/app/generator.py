@@ -1,5 +1,6 @@
 import ast
 import ollama
+from pydantic import ValidationError
 
 from app.models import (
     GeneratedScenarios,
@@ -16,6 +17,67 @@ from app.prompts import (
 
 
 MODEL_NAME = "qwen3:4b"
+MAX_SCENARIO_ATTEMPTS = 3
+
+
+def function_parameter_names(source_code: str) -> set[str]:
+    """Return every parameter name of every function in the source."""
+    names: set[str] = set()
+    for node in ast.walk(ast.parse(source_code)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            arguments = node.args
+            for arg in (
+                arguments.posonlyargs
+                + arguments.args
+                + arguments.kwonlyargs
+            ):
+                names.add(arg.arg)
+            if arguments.vararg:
+                names.add(arguments.vararg.arg)
+            if arguments.kwarg:
+                names.add(arguments.kwarg.arg)
+    return names
+
+
+def uses_pytest_raises(pytest_code: str) -> bool:
+    """Return True when the code calls pytest.raises."""
+    for node in ast.walk(ast.parse(pytest_code)):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr == "raises"
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "pytest"
+        ):
+            return True
+    return False
+
+
+def validate_scenarios(
+    scenarios: list[Scenario],
+    source_code: str,
+) -> None:
+    """
+    Structural checks on the scenario intermediate representation.
+
+    Requirement alignment (requirement_clause) is deliberately not
+    enforced here: it is measured during evaluation instead.
+    """
+    scenario_ids = [scenario.id for scenario in scenarios]
+    if len(set(scenario_ids)) != len(scenario_ids):
+        raise ValueError("Identified scenario IDs must be unique")
+
+    parameters = function_parameter_names(source_code)
+    for scenario in scenarios:
+        unknown = sorted(
+            {argument.name for argument in scenario.example_inputs}
+            - parameters
+        )
+        if unknown:
+            raise ValueError(
+                f"Scenario {scenario.id} uses example_inputs names "
+                f"{unknown} that are not parameters of any function in "
+                f"the source code (available: {sorted(parameters)})"
+            )
 
 def ensure_pytest_import(pytest_code: str) -> str:
     """
@@ -58,6 +120,15 @@ def generate_test_cases(
 
     if not scenarios:
         raise ValueError("At least one identified scenario is required")
+
+    # Scenarios whose outcome the requirement leaves undefined are
+    # reported but not tested, so no expected result is invented.
+    scenarios = [
+        scenario for scenario in scenarios
+        if scenario.expected_outcome_kind != "unspecified"
+    ]
+    if not scenarios:
+        return [], f"{source_code.rstrip()}\n"
 
     response = ollama.chat(
         model=MODEL_NAME,
@@ -111,6 +182,15 @@ def generate_test_cases(
                 f"Test case {test_case.id} contains invalid Python"
             ) from exc
 
+        if (
+            scenario.expected_outcome_kind == "error"
+            and not uses_pytest_raises(test_case.pytest_code)
+        ):
+            raise ValueError(
+                f"Test case {test_case.id} must use pytest.raises because "
+                f"scenario {scenario.id} expects an error"
+            )
+
         functions = [
             node for node in parsed_test.body
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
@@ -153,28 +233,57 @@ def identify_scenarios(requirement: str, source_code: str) -> list[Scenario]:
     Identify distinct testing scenarios (positive, negative, boundary,
     edge) from a natural-language requirement and its associated
     Python source code using a local Ollama model.
+
+    The output is a structured intermediate representation. Responses
+    that fail schema or structural validation are retried with the
+    validation error as feedback.
     """
 
-    response = ollama.chat(
-        model=MODEL_NAME,
-        messages=[
-            {
-                "role": "system",
-                "content": SCENARIO_SYSTEM_PROMPT
-            },
-            {
-                "role": "user",
-                "content": build_scenario_prompt(requirement, source_code)
-            }
-        ],
-        format=GeneratedScenarios.model_json_schema(),
-        options={
-            "temperature": 0.2
+    messages = [
+        {
+            "role": "system",
+            "content": SCENARIO_SYSTEM_PROMPT
+        },
+        {
+            "role": "user",
+            "content": build_scenario_prompt(requirement, source_code)
         }
-    )
+    ]
+    last_error: Exception | None = None
 
-    generated = GeneratedScenarios.model_validate_json(
-        response.message.content
-    )
+    for attempt in range(MAX_SCENARIO_ATTEMPTS):
+        response = ollama.chat(
+            model=MODEL_NAME,
+            messages=messages,
+            format=GeneratedScenarios.model_json_schema(),
+            options={
+                "temperature": 0.2
+            }
+        )
+        content = response.message.content
 
-    return generated.scenarios
+        try:
+            generated = GeneratedScenarios.model_validate_json(content)
+            validate_scenarios(generated.scenarios, source_code)
+            return generated.scenarios
+        except (ValidationError, ValueError) as exc:
+            last_error = exc
+            if attempt == MAX_SCENARIO_ATTEMPTS - 1:
+                break
+            messages.append({"role": "assistant", "content": content})
+            messages.append({
+                "role": "user",
+                "content": (
+                    "Your previous scenario response failed validation.\n\n"
+                    f"Validation error:\n{exc}\n\n"
+                    "Return the complete corrected JSON object. Fill every "
+                    "field of every scenario, and use only parameter names "
+                    "from the source code in example_inputs."
+                ),
+            })
+
+    raise ValueError(
+        "Scenario identification failed after "
+        f"{MAX_SCENARIO_ATTEMPTS} attempts. "
+        f"Last validation error: {last_error}"
+    ) from last_error

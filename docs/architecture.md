@@ -227,6 +227,32 @@ Requirement + Source
 Structured Scenarios
 ```
 
+### Structured scenario representation
+
+Stage 1 does not produce free-text scenario descriptions. Each scenario is a typed record. This is a lightweight, machine-checkable intermediate representation between the Scenario Generator and the Test Generator, playing the role that the DSL plays in Req2Test (see [`related_work.md`](related_work.md)).
+
+Both pipelines share one core schema (`ScenarioCore` in `backend/app/models.py`):
+
+| Field | Meaning |
+|---|---|
+| `id` | Unique scenario identifier |
+| `category` | `positive`, `negative`, `boundary`, or `edge` |
+| `precondition` | The specific input condition or state targeted |
+| `behavior_under_test` | The call or operation exercised |
+| `expected_result` | The observable outcome required |
+
+`DBMSScenario` uses the core fields as they are. The Python pipeline's `Scenario` adds three fields that can be checked without an LLM:
+
+| Field | Meaning | Checked by |
+|---|---|---|
+| `requirement_clause` | Verbatim quote of the requirement text the scenario targets | Requirement Alignment scoring (substring check) |
+| `expected_outcome_kind` | `success`, `error`, or `unspecified` | Test generation (`error` ⇒ the test must use `pytest.raises`); coverage gate |
+| `example_inputs` | Concrete `{name, value}` arguments | Names must be parameters of a function in the source (AST); exact-input coverage matching |
+
+Validation failures in Stage 1 (schema errors, duplicate IDs, unknown parameter names) are retried up to three times, with the error fed back to the model. `requirement_clause` is deliberately **not** enforced. It is measured during evaluation, so the alignment metric stays meaningful.
+
+Scenarios marked `unspecified` (behavior the requirement does not define) are returned in the response as `untested_scenario_ids` but are not sent to Stage 2. This keeps the generator from inventing expected results.
+
 ---
 
 ## Stage 2 — Test Generation
@@ -542,6 +568,27 @@ Failure Analysis
 
 This separation is important because a generated test can execute successfully without adequately representing the original requirement.
 
+## Automated scenario scoring (Improvement 4)
+
+The reference scenarios use the same structured schema as generated scenarios. As a result, `backend/app/scenario_coverage.py` scores the Python pipeline automatically instead of relying on manual matching:
+
+```text
+Reference/generated pair
+        |
+        v
+Gate: same category AND same expected_outcome_kind?  -- no --> not a match
+        | yes
+        v
+example_inputs identical?  -- yes --> covered (no LLM call)
+        | no
+        v
+LLM judge on precondition/behavior and expected_result
+```
+
+**Requirement Alignment** is fully deterministic. A scenario is aligned when its `requirement_clause` appears verbatim in the requirement, ignoring case and whitespace.
+
+Run it with `python evaluate_python_scenarios.py` from `backend/`. Results are written to `evaluation/improvement4/`.
+
 ---
 
 # 10. Security Boundary
@@ -612,6 +659,16 @@ A production architecture would require stronger isolation, such as a dedicated 
 
 ---
 
+## Decision 6 — Structured Intermediate Representation Between Stages
+
+**Decision:** Replace free-text scenario descriptions with a typed scenario schema shared by the Python and DBMS pipelines.
+
+**Reason:** Free-text scenarios had to be matched by hand during evaluation. Structured fields allow deterministic checks (requirement alignment, outcome kind, input names) and field-by-field coverage scoring.
+
+**Trade-off:** More required fields raise the chance that a small local model fails validation. This is mitigated with feedback-driven retries. Results are also not directly comparable with the earlier free-text stages.
+
+---
+
 # 12. Future Architecture Improvements
 
 Future versions could extend the architecture with:
@@ -632,7 +689,6 @@ Potential improvements include:
 - validating generated function calls against supplied source definitions;
 - automatically regenerating structurally or semantically invalid tests;
 - isolated test-execution environments;
-- automated reference-scenario comparison;
 - repeated-run evaluation tooling;
 - support for larger source modules;
 - multiple-model comparison; and

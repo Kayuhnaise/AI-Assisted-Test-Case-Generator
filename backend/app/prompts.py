@@ -30,6 +30,13 @@ The supplied scenarios are the source of expected behavior. The requirement
 and source code provide additional context for writing tests that match the
 implementation.
 
+Each supplied scenario is a structured record:
+- Use its example_inputs as the concrete argument values in the test.
+- Assert its expected_result.
+- When expected_outcome_kind is "error", the test must use pytest.raises
+  and include "import pytest".
+- When expected_outcome_kind is "success", assert the returned value.
+
 The pytest_code string must contain exactly one complete top-level Python
 test function, plus any imports required by that test. The function must
 execute and assert the supplied scenario against the functions defined in
@@ -113,9 +120,9 @@ its associated Python source code, and identify the distinct testing
 scenarios that should be verified before any test cases are written.
 
 A scenario describes a single expected behavior or boundary condition.
-It is not a test case: it should not contain test steps or expected
-result wording, only a clear description of the behavior or condition
-being covered.
+It is not a test case: it should not contain test steps or pytest code.
+Every scenario is a structured record whose fields are checked
+automatically, so fill each field exactly as defined below.
 
 Ground every scenario in what the requirement and source code actually
 state or imply. Do not invent behavior that is not supported by either.
@@ -147,10 +154,28 @@ When the source code accepts values outside the requirement's normal
 domain without validation, identify that behavior as a negative or edge
 scenario when relevant.
 
-Each scenario must contain:
-- id
-- category
-- description
+Each scenario must contain these fields:
+- id: a unique identifier within this response, such as pos_1 or bnd_2
+- category: positive, negative, boundary, or edge
+- requirement_clause: the exact words of the requirement that this
+  scenario targets, copied verbatim from the requirement text. Do not
+  paraphrase, summarize, or quote the source code. If the scenario
+  comes only from the source code, quote the requirement clause it
+  most directly relates to.
+- precondition: the specific input condition or state the scenario
+  targets, such as "denominator is exactly 0"
+- behavior_under_test: the function call or operation being exercised
+- expected_result: the observable outcome, such as "returns 5.0" or
+  "raises ValueError"
+- expected_outcome_kind:
+  - success: the operation returns a result
+  - error: the operation raises an exception or rejects the input
+  - unspecified: the requirement does not define the outcome. Use this
+    instead of inventing an expected result; set expected_result to a
+    short note on what is undefined.
+- example_inputs: a list of {name, value} pairs giving concrete argument
+  values. Every name must be a parameter of a function defined in the
+  supplied source code.
 
 Return structured data only.
 """
@@ -455,4 +480,59 @@ Include the schema, test data, SQL operation, and
 verification statements required to test each scenario.
 
 Return only the structured response.
+"""
+
+
+SCENARIO_COVERAGE_SYSTEM_PROMPT = """
+You are a strict semantic evaluator comparing reference test scenarios
+for a Python function with scenarios produced by an automated scenario
+generator.
+
+For every supplied reference/generated pair, independently judge whether
+each of these parts is semantically equivalent:
+1. precondition together with behavior_under_test (the input condition
+   being exercised)
+2. expected_result
+
+Set a part's matches field to true only when the meanings are equivalent,
+not merely related or sharing keywords. Different example values that
+exercise the same condition (for example, two different ordinary nonzero
+denominators) are equivalent. A missing or materially different
+condition or outcome is not.
+
+Report the first part in both precondition_matches and behavior_matches,
+and the second part in expected_result_matches. Use reference ids for
+expert_scenario_id and generated ids for extracted_scenario_id.
+
+Return one judgment for every supplied pair. Do not omit, duplicate, or
+invent any pair. Return structured data only.
+"""
+
+
+def build_scenario_coverage_prompt(
+    requirement: str,
+    pairs: Sequence[tuple[Scenario, Scenario]],
+) -> str:
+    fields = (
+        "id",
+        "category",
+        "precondition",
+        "behavior_under_test",
+        "expected_result",
+    )
+    pair_data = [
+        {
+            "reference": reference.model_dump(mode="json", include=set(fields)),
+            "generated": generated.model_dump(mode="json", include=set(fields)),
+        }
+        for reference, generated in pairs
+    ]
+    return f"""
+Requirement:
+{requirement}
+
+Reference/generated scenario pairs to judge:
+{json.dumps(pair_data, ensure_ascii=False, indent=2)}
+
+Return exactly one judgment for each pair above.
 """
