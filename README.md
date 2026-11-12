@@ -2,7 +2,8 @@
 
 **SWENG 889 — Fall I 2026**  
 **Team:** Gulnar Aldasheva, Samhitha Dwarakanath, Keya Gangadharan  
-**Project status:** November 6, 2026 — integrated R1→R2 pipeline, optional Claude-based R1 extraction, PostgreSQL validation, and additional benchmark artifacts available on `feature/r1-integration`.
+**Project status:** November 12, 2026 — integrated R1→R2 pipeline, Claude-based R1 extraction, PostgreSQL validation, and supporting benchmark and audit artifacts available on `main`.
+
 
 ## Overview
 
@@ -16,8 +17,8 @@ The repository also retains an earlier Python/pytest requirement-to-test generat
 |---|---|---|
 | R1 scenario extraction | Implemented | Extract positive, negative, boundary, and edge scenarios from text or Markdown requirements |
 | Requirement-aware chunking and truncation recovery | Implemented | Process larger requirements and recover from truncated model responses |
-| Claude R1 extraction | Implemented on `feature/r1-integration` | Select Claude instead of Ollama through the integrated pipeline |
-| R1 expert-reference coverage | Implemented and evaluated | Compare extracted scenarios with expert-defined scenarios; separate experimental semantic evaluator available |
+| Claude R1 extraction | Implemented on `main` | Select Claude instead of Ollama through the integrated pipeline |
+| R1 reference coverage | Implemented and evaluated | Compare extracted scenarios with defined scenarios; separate experimental semantic evaluator available |
 | R2 SQL generation | Implemented | Generate traceable SQLite or PostgreSQL SQL tests with Claude |
 | SQLite validation and independent oracle | Implemented and benchmarked | Check execution, expected outcomes, and state assertions |
 | PostgreSQL validation and independent oracle | Implemented and benchmarked | Run reviewed tests with rollback/savepoint handling and independent checks |
@@ -49,7 +50,7 @@ Natural-language DBMS requirements (text/Markdown)
         (ID, category, precondition, behavior,
                   expected result)
                          |
-             Optional expert coverage
+             Optional coverage
              and semantic assessment
                          |
                          v
@@ -91,7 +92,7 @@ Each extracted `DBMSScenario` includes:
 
 The pipeline supports `r1_provider: "ollama"` (default) or `r1_provider: "claude"`. The Ollama extraction path includes requirement-aware chunking and truncated-output recovery. The standalone `/dbms/scenarios` endpoint uses the default R1 implementation.
 
-Expert-scenario coverage compares extracted scenarios with reference scenarios based on preconditions, behavior, and expected outcomes. An additional **experimental Claude semantic coverage evaluator** is available; its automated judgments should not be conflated with the manually audited benchmark results.
+Scenario coverage compares extracted scenarios with reference scenarios based on preconditions, behavior, and expected outcomes. An additional **experimental Claude semantic coverage evaluator** is available; its automated judgments should not be conflated with the manually audited benchmark results.
 
 ### R2: SQL test generation
 
@@ -165,7 +166,7 @@ Start the API and open `http://127.0.0.1:8000/docs` for the interactive OpenAPI 
 | `POST /scenarios` | Original Python scenario extraction | Python-oriented workflow |
 | `POST /generate` | Original Python pytest generation/execution | Trusted local use only |
 | `POST /dbms/scenarios` | Standalone R1 scenario extraction | Default R1 path |
-| `POST /dbms/coverage` | Compare extracted and expert scenarios | Requires supplied scenario sets |
+| `POST /dbms/coverage` | Compare extracted scenarios | Requires supplied scenario sets |
 | `POST /dbms/generate` | Generate SQL from supplied scenarios | API defaults to SQLite |
 | `POST /dbms/pipeline/generate` | Chain R1 extraction and R2 SQL generation | Supports `r1_provider`; returns SQL for review, does not execute |
 | `POST /dbms/validate` | Validate SQL tests | API uses SQLite; PostgreSQL is a separate Python workflow |
@@ -252,9 +253,16 @@ python -m pytest tests -q
 
 The results below are from **different evaluation stages and datasets**. Do not combine their denominators into a single accuracy score or interpret iterative prompt/model refinements as a controlled comparison.
 
-### R1: Library Management expert-scenario coverage
+### R1: Library Management scenario coverage
 
-The Library Management SRS was evaluated against **19 expert reference scenarios**. Strict coverage counts fully matched reference scenarios; lenient coverage also counts partial matches.
+The Library Management SRS was evaluated against **19 AI-assisted reference scenarios** derived from six selected requirements. The reference scenarios were prepared on November 5, 2026, with ChatGPT assistance, before examination of the first recorded R1 model extraction output. An initial set of 20 scenarios was reduced to 19 after removing one overlapping scenario. The reference set was not independently validated by external requirements engineering experts.
+
+Strict coverage counts fully matched reference scenarios; lenient coverage also includes partial matches. These results measure agreement with the AI-assisted reference set rather than independently established expert ground truth.
+
+The reference scenarios and their construction methodology are documented in:
+- `backend/tests/fixtures/external/library_management_r1_reference.json`
+- `backend/tests/fixtures/external/REFERENCE_SCENARIO_METHODOLOGY.md`
+
 
 | Extraction run | Full | Partial | Missing | Strict coverage |
 |---|---:|---:|---:|---:|
@@ -263,6 +271,28 @@ The Library Management SRS was evaluated against **19 expert reference scenarios
 
 The Ollama lenient coverage was 18/19 (94.7%). The improved Claude extraction generated more scenarios than the 19 reference scenarios; **100% reference coverage does not imply 100% precision, uniqueness, or validity of every generated scenario**. The improved Claude result is a manually audited reference-coverage finding, not a general guarantee and not an independently controlled model comparison.
 
+
+#### Quality audit of generated R1 scenarios
+
+The improved Claude configuration generated 117 scenarios across the six selected Library Management SRS requirements. All 117 scenarios were reviewed using an AI-assisted classification process to assess their consistency with the requirements and whether they represented distinct test conditions.
+
+| Classification | Count | Percentage |
+|---|---:|---:|
+| Correct and distinct | 102 | 87.2% |
+| Correct but redundant | 9 | 7.7% |
+| Unsupported by requirements | 6 | 5.1% |
+| Incorrect | 0 | 0.0% |
+| **Total** | **117** | **100.0%** |
+
+Overall, 111 of 117 scenarios (94.9%) were classified as requirements-supported, while 102 of 117 (87.2%) were both requirements-supported and distinct.
+
+The redundant scenarios repeated previously covered behaviors, while unsupported scenarios introduced expectations not sufficiently established by the SRS. These results demonstrate that full reference coverage does not guarantee that every generated scenario is useful or requirements-supported.
+
+Because the audit used AI-assisted review rather than independent expert assessment, these classifications are provisional and should not be interpreted as independently verified precision estimates.
+
+The complete scenario-level audit is available in `backend/benchmark_results/library_r1_quality_audit.csv`.
+
+
 Relevant files:
 
 - `backend/tests/fixtures/external/library_management_srs.md`
@@ -270,6 +300,9 @@ Relevant files:
 - `backend/benchmark_results/library_r1_traceability_audited.csv`
 - `backend/benchmark_results/library_r1_claude_extraction_improved.json`
 - `backend/benchmark_results/library_r1_requirement_chunks.json`
+- `backend/tests/fixtures/external/REFERENCE_SCENARIO_METHODOLOGY.md`
+- `backend/benchmark_results/library_r1_quality_audit.csv`
+
 
 ### R2: SQLite and PostgreSQL benchmark (November 4, 2026)
 
@@ -290,7 +323,15 @@ Saved artifacts include:
 
 ### Additional Library Management R2 and end-to-end demo
 
-A reviewed set of **10 Library Management R2 PostgreSQL tests passed 10/10**, including two tests adapted after review. A **separate book-registration end-to-end PostgreSQL demonstration passed 10/10**. These are distinct validation results, not evidence that an unreviewed fully automatic R1→R2 pipeline achieves 100% success across arbitrary requirements.
+
+A reviewed set of **10 Library Management R2 PostgreSQL tests passed 10/10**. Five tests passed by producing expected database constraint violations, while five completed their intended SQL operations successfully.
+
+The expected constraint violations covered duplicate usernames (UNIQUE), duplicate ISBNs (UNIQUE), missing required book titles (NOT NULL), duplicate ISBNs during updates (UNIQUE), and deletion of referenced books (FOREIGN KEY).
+
+Eight tests passed using the original execution workflow. Two additional borrowing/return tests required execution-only adaptations because their multi-statement SQL operations were incompatible with the executor's single-statement execution path. These were wrapped in PostgreSQL anonymous `DO` blocks without changing the intended test assertions.
+
+A **separate book-registration end-to-end PostgreSQL demonstration passed 10/10**. These are distinct validation results and do not establish that an unreviewed, fully automatic R1→R2 pipeline achieves 100% success across arbitrary requirements.
+
 
 Artifacts:
 
@@ -323,7 +364,7 @@ python evaluate_dbms_r2_postgres.py \
 
 On Windows, use `Get-FileHash -Algorithm SHA256 <path>` to obtain the digest.
 
-The repeated integrated benchmark contains 12 existing expert-labeled cases and four supplemental cases covering cascading deletes, tenant-scoped uniqueness, savepoint rollback, and generated identity values. Generate three trials with:
+The repeated integrated benchmark contains 12 existing labeled cases and four supplemental cases covering cascading deletes, tenant-scoped uniqueness, savepoint rollback, and generated identity values. Generate three trials with:
 
 ```sh
 python evaluate_dbms_r1_r2_postgres.py --trials 3
@@ -337,7 +378,7 @@ python evaluate_dbms_r1_r2_postgres.py \
   --approved-sha256 "<sha256-of-reviewed-file>"
 ```
 
-The resulting report separates extraction, expert coverage, generation, review decisions, PostgreSQL execution, and independent-oracle outcomes. **Do not run generated SQL on persistent project databases or systems containing valuable data.** Docker-based disposal and review reduce risk but do not make arbitrary SQL execution secure or fully network-isolated.
+The resulting report separates extraction, coverage, generation, review decisions, PostgreSQL execution, and independent-oracle outcomes. **Do not run generated SQL on persistent project databases or systems containing valuable data.** Docker-based disposal and review reduce risk but do not make arbitrary SQL execution secure or fully network-isolated.
 
 ## Historical Python/pytest proof of concept
 
@@ -345,7 +386,7 @@ The original project generated pytest cases from natural-language requirements a
 
 ### Historical reference data
 
-| Requirement | Expert reference scenarios |
+| Requirement | reference scenarios |
 |---|---:|
 | Account Lockout | 5 |
 | Order Discount | 5 |
@@ -400,7 +441,7 @@ Two papers shaped the design and evaluation. Full summaries and their mapping to
 ## Next steps
 
 1. **Run repeated integrated trials:** Execute at least three reviewed trials with `evaluate_dbms_r1_r2_postgres.py --trials 3`, recording per-stage success and failure rates.
-2. **Audit more R1 datasets:** Reproduce the Library Management traceability audit and independently assess the 16-case integrated benchmark against its expert references.
+2. **Audit more R1 datasets:** Reproduce the Library Management traceability audit and independently assess the 16-case integrated benchmark against its references.
 3. **Expand test diversity:** Add independently reviewed requirements for concurrency, transaction isolation, permissions, and recovery, with repeated trials and independent oracles.
 4. **Strengthen isolation:** Evaluate outbound-network restrictions and stronger container controls before running higher-risk generated SQL.
 
