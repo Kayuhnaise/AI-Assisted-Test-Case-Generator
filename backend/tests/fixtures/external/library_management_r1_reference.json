@@ -1,7 +1,7 @@
 {
   "benchmark_id": "LMS-R1-EXTERNAL-001",
   "source_document": "library_management_r1_input.md",
-  "description": "Manually authored reference scenarios for R1 extraction evaluation",
+  "description": "AI-assisted reference scenarios reviewed and refined during benchmark preparation, before evaluation of the R1 model outputs",
   "scenarios": [
     {
       "id": "REF-001",
